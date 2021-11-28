@@ -1,0 +1,43 @@
+---
+title: "Tshering Rough"
+author: "Tshering Wangchuk"
+date: "11/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+```
+
+```{r}
+set.seed(456)
+lasso_2 <- train(
+  Price~.,
+  data = Master,
+  method = "glmnet",
+  tuneGrid = data_frame(alpha = 1, lambda = seq(0,10, length = 100)),
+  trControl = trainControl(method = "cv", number = 5, selectionFunction = best),
+  metric = "MAE",
+  na.action = na.omit
+)
+
+plot(lasso_2)
+```
+
+```{r}
+lasso_2$bestTune
+```
+```{r}
+coef(lasso_2$bestTune)
+```
+
+```{r}
+cbind(coef(lasso_2$finalModel, 0.1),
+      coef(lasso_2$finalModel, 1),
+      coef(lasso_2$finalModel, 10))
+```
+
