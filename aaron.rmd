@@ -32,7 +32,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(readxl)
-ADS_Project_11_24_2021_v4 <- read_excel("ADS_Project - 11.24.2021.v4.xlsx")
+ADS_Project_11_24_2021_v4 <- read_excel("ADS_Project - 11.24.2021.v4.xlsx") %>% 
+  mutate(Date = ymd(Date))
 ```
 
 
@@ -65,7 +66,6 @@ Master_Training <- training(Master_Split)
 Master_Testing <- testing(Master_Split)
 ```
 
-
 <br> Aaron's Lasso Attempt
 
 
@@ -79,11 +79,11 @@ Master_CV <- train(
   data = Master,
   method = "glmnet",
   trControl = splits,
-  tuneGrid = data.frame(alpha = 1, lambda = 0.01),
+  tuneGrid = data.frame(alpha = 1, lambda = 0.000001),
   na.action = na.omit
 )
 
-coefficients(Master_CV$finalModel, .01)
+coefficients(Master_CV$finalModel,0.000001)
 ```
 
 
