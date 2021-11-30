@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(readxl)
-ADS_Project_11_24_2021_v7 <- read_excel("ADS_Project - 11.29.2021.v7.xlsx") %>% 
+ADS_Project_11_29_2021_v7 <- read_excel("ADS_Project - 11.29.2021.v7.xlsx") %>%
   mutate(Date = ymd(Date))
 ```
 
@@ -63,6 +63,64 @@ ggplot(Master.v7,
 ggplot(Master.v7,
        aes(x = `Network distribution factor`  ,
            y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Addresses Active Count`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Supply, in addresses (<$1)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Supply, held by top 1% addresses`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Supply, current`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+
+```{r}
+ggplot(Master.v7,
+       aes(x = `Gold(%)`,
+           y = `BTC(%)`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Capitalization of active native units supply, in USD`,
+           y = Price)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Transactions, adjusted transfer value ($)`,
+           y = Price)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+
+```{r}
+ggplot(Master.v7,
+       aes(x = NUPL,
+           y = Price)) + 
          geom_point() + 
          geom_smooth(method = lm, se = FALSE)
 ```
