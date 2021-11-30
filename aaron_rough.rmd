@@ -41,7 +41,8 @@ ggplot(Master.v7,
        aes(x = `CPI`,
            y = `BTC(%)`)) + 
          geom_point() + 
-         geom_smooth(method = lm, se = FALSE)
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "CPI"))
 
 ```
 
@@ -57,14 +58,16 @@ ggplot(Master.v7,
        aes(x = `Addresses balance greater than $10`,
            y = `Price`)) + 
          geom_point() + 
-         geom_smooth(method = lm, se = FALSE)
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Address Balance > $10"))
 ```
 ```{r}
 ggplot(Master.v7,
        aes(x = `Network distribution factor`  ,
            y = `Price`)) + 
          geom_point() + 
-         geom_smooth(method = lm, se = FALSE)
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Network Distribution Factor"))
 ```
 ```{r}
 ggplot(Master.v7,
@@ -84,8 +87,9 @@ ggplot(Master.v7,
 ggplot(Master.v7,
        aes(x = `Supply, held by top 1% addresses`,
            y = `Price`)) + 
-         geom_point() + 
-         geom_smooth(method = lm, se = FALSE)
+         geom_point() +
+         geom_smooth(method = lm, se = FALSE) +
+    scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Supply, held by Top 1%"))
 ```
 ```{r}
 ggplot(Master.v7,
