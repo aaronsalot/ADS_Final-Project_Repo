@@ -117,3 +117,15 @@ cbind(coef(lasso_2$finalModel, 0.1),
       coef(lasso_2$finalModel, 10))
 ```
 
+```{r}
+mylogit <- glm(Price ~ `Gold(%)` + NUPL + Coin_Days_Destroyed + `Transactions, adjusted transfer value ($)` + `Supply, current` + `Supply, held by top 10% addresses` + `Supply, in addresses (<$10)` + `Network distribution factor` + `Capitalization of active native units supply, in USD`, data = Master.v7)
+
+summary(mylogit)
+```
+
+```{r}
+mylogit_2 <- glm(Price ~ `Gold(%)` + NUPL + Coin_Days_Destroyed + `Transactions, adjusted transfer value ($)` + `Network distribution factor`, data = Master.v7)
+
+summary(mylogit_2)
+```
+
