@@ -22,6 +22,7 @@ library(patchwork)         # for combining plots nicely
 library(xgboost)
 library(leaps)
 library(caret)
+library(ggplot2)
 theme_set(theme_minimal()) # Lisa's favorite theme
 ```
 
@@ -88,67 +89,31 @@ coefficients(Master_CV$finalModel,0.000000001)
 
 
 ```{r}
-step_naomit(
-  recipe,
-  ...,
-  role = NA,
-  trained = FALSE,
-  columns = NULL,
-  skip = FALSE,
-  id = rand_id("naomit")
+set.seed(456)
+lasso_2 <- train(
+  Price~.,
+  data = Master.v8,
+  method = "glmnet",
+  tuneGrid = data_frame(alpha = 1, lambda = seq(0,10, length = 100)),
+  trControl = trainControl(method = "cv", number = 5, selectionFunction = best),
+  metric = "MAE",
+  na.action = na.omit
 )
-```
 
-
-
-```{r}
-set.seed(456)
-
-lasso_recipe <- 
-  recipe(Price~.,
-         data = Master_Training) %>%
-         step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
-         step_dummy(all_nominal(), -all_outcomes()) %>%
-         step_normalize(all_predictors(),
-                 -all_nominal(),
-                 -has_role(match = 'evaluative'))
-
-lasso_recipe %>%
-  prep() %>%
-  juice()
+plot(lasso_2)
 ```
 
 ```{r}
-lasso_model <- 
-  logistic_reg(mixture = 1) %>%
-  set_engine("glmnet") %>%
-  set_args(penalty = tune()) %>%
-  set_mode("classification")
-
-lasso_wf <- workflow() %>%
-            add_recipe(lasso_recipe) %>%
-            add_model(lasso_model)
+lasso_2$bestTune
 ```
 
 ```{r}
-set.seed(456)
-
-Bitcoin_cv <- vfold_cv(Master_Training,v = 5)
-penalty_grid <- grid_regular(penalty(), levels = 10)
-ctrl_grid <- control_stack_resamples()
-
-metric <- metric_set(accuracy)
+coef(lasso_2$bestTune)
 ```
 
 ```{r}
-lasso_tune <- 
-  lasso_wf %>% 
-  tune_grid(
-    resamples = Bitcoin_cv,
-    grid = penalty_grid,
-    control = ctrl_grid
-  )
-
-lasso_tune %>% collect_metrics()
+cbind(coef(lasso_2$finalModel, 0.1),
+      coef(lasso_2$finalModel, 1),
+      coef(lasso_2$finalModel, 10))
 ```
 
