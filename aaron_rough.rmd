@@ -5,6 +5,8 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidymodels)
+library(tidyr)
 ```
 
 ## R Markdown
@@ -37,7 +39,7 @@ Master_CV <- train(
 coefficients(Master_CV$finalModel,0.000000001)
 ```
 ```{r}
-ggplot(Master.v7,
+ggplot(Master.v8,
        aes(x = `CPI`,
            y = `BTC(%)`)) + 
          geom_point() + 
@@ -136,4 +138,54 @@ ggplot(Master.v7,
          geom_point() + 
          geom_smooth(method = lm, se = FALSE)
 ```
+
+
+```{r}
+set.seed(456)
+
+lasso_recipe <- 
+  recipe(Price~.,
+         data = Master.v8) %>%
+         step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
+         step_dummy(all_nominal(), -all_outcomes()) %>%
+         step_normalize(all_predictors(),
+                 -all_nominal(),
+                 -has_role(match = 'evaluative'))
+
+```
+
+```{r}
+lasso_model <- 
+  logistic_reg(mixture = 1) %>%
+  set_engine("glmnet") %>%
+  set_args(penalty = tune()) %>%
+  set_mode("classification")
+
+lasso_wf <- workflow() %>%
+            add_recipe(lasso_recipe) %>%
+            add_model(lasso_model)
+```
+
+```{r}
+set.seed(456)
+
+Bitcoin_cv <- vfold_cv(Master.v8,v = 5)
+penalty_grid <- grid_regular(penalty(), levels = 10)
+ctrl_grid <- control_stack_resamples()
+
+metric <- metric_set(accuracy)
+```
+
+```{r}
+lasso_tune <- 
+  lasso_wf %>% 
+  tune_grid(
+    resamples = Bitcoin_cv,
+    grid = penalty_grid,
+    control = ctrl_grid
+  )
+
+lasso_tune %>% collect_metrics()
+```
+
 
