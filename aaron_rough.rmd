@@ -7,68 +7,18 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-```{r}
-library(tidyverse)         # for graphing and data cleaning
-library(tidymodels)        # for modeling
-library(themis)            # for step functions for unbalanced data
-library(doParallel)        # for parallel processing
-library(stacks)            # for stacking models
-library(naniar)            # for examining missing values (NAs)
-library(lubridate)         # for date manipulation
-library(moderndive)        # for King County housing data
-library(vip)               # for variable importance plots
-library(patchwork)         # for combining plots nicely
-library(xgboost)
-library(leaps)
-library(caret)
-library(ggplot2)
-theme_set(theme_minimal()) # Lisa's favorite theme
-```
-
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+## R Markdown
 
 ```{r}
 library(readxl)
-ADS_Project_11_24_2021_v4 <- read_excel("ADS_Project - 11.24.2021.v4.xlsx") %>% 
+ADS_Project_11_29_2021_v8 <- read_excel("ADS_Project - 11.29.2021.v8.xlsx") %>%
   mutate(Date = ymd(Date))
 ```
 
-
-<br> Data Cleaning & Pre-Processing
-
-After collecting data from Glassnodes and CoinMetrics API, we did some data cleaning on Excel initially. This included changing variable names, sorting the excel, and adjusting for any discrepancies. After creating a compiled excel with both data sources, we imported it on Rstudio and formally begun the pre-processing. In the code below, we created 'Master' which is the final Excel after removing certain variables. These variables were removed based on our understanding of Blockchain, Bitcoin, and the Market Supply. If you look closely, we also removed variables that were in "native currency units" and kept everything in USD to standardize our findings. 
-
-
 ```{r}
-Master <- ADS_Project_11_24_2021_v4 %>%
+Master.v8 <- ADS_Project_11_29_2021_v8 %>%
 select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Block Size (mean, in bytes)`, `Block Weight, (mean`, `Capitalization of current supply, MVRV`, `Capitalization of free float, MVRV`, `Difficulty, Last Block`, `Difficulty, Mean Block`, `Mean Transaction Fee per Byte of all blocks, native units`, `Mean Transaction Fee per Byte, native units`, `Median Transaction Fee, native units`, `Median Fee per Transacation, USD`, `Addresses balance greater than 0.001 native units`, `Addresses balance greater than 0.01 native units`, `Addresses balance greater than 0.1 native units`,`Addresses balance greater than 100 native units`, `Addresses balance greater than 100K native units`, `Addresses balance greater than 10 native units`, `Addresses balance greater than 10K native units`, `Addresses balance greater than 1 native units`, `Addresses balance greater than 1K native units`, `Addresses balance greater than 1M native units`, `Addresses balance greater than 1in100K`, `Addresses balance greater than 1in100M`, `Addresses balance greater than 1in10B`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10M`, `Addresses balance greater than 1in1B`, `Addresses balance greater than 1in1K`, `Addressesbalance greater than 1in1M`, `Total Fees, native units`, `Flow to exchanges, native units`, `Flow out exchanges, native units`, `Gas Limit Block`, `Gas Limit, transaction`, `Gas Used, transaction`, `Hash Rate Mean, 30d`, `Issuance, native units`, `Issuance, percent annualized`, `Issuance,  percent daily`, `Issuance Total, native units`,`NVT, adjusted, 90d MA`, `NVT, adjusted, free float,  90d MA`, `ROI, 1y (%)`, `Revenue, per hash unit (Native Currency)`, `Revenue Daily, per hash unit/second (Native Currency)`, `Miner Rev (Native Currency)`, `Supply, 10y Active`, `Supply, 5yr Active`, `Supply, 4yr Active`, `Supply, 3yr Active`, `Supply, 1yr Active Trailing (%)`, `Supply, in addresses (<0.001, native currency)`, `Supply, in addresses (<0.01M, native currency)`, `Supply, in addresses (<0.1, native currency)`, `Supply, in addresses (<1, native currency)`, `Supply, in addresses (<10, native currency)`, `Supply, in addresses (<100, native currency)`, `Supply, in addresses (<100K, native currency)`, `Supply, in addresses (<10K, native currency)`, `Supply, in addresses (<1K, native currency)`, `Supply, in addresses (<1M, native currency)`, `Supply, Miner address with 1 mining entity (native currency)`, `Supply, All Miners (native currency)`, `Transactions, adjusted transfer value (native currency)`, `Transactions, mean transfer value (native currency)`, `Transactions, median transfer value (native currency)`, `Transactions, mean transfer value ($)`, `Transactions, median transfer value (native currency)`, `Velocity, 1yr current supply`, `Volatility, 180d daily returns`, `Volatility, 30d daily returns`, `Price, BTC`, `Transactions, median transfer value ($)`, `Price, ($)`))
 ```
-
-<br> Data Visualization
-
-```{r}
-Master_Training %>% select(where(is.numeric)) %>%
-                pivot_longer(cols = everything(),
-                             names_to = "variable",
-                             values_to = "value") %>%
-                ggplot(aes(x = value)) +
-                geom_histogram(bins = 30) + 
-                facet_wrap(vars(variable),
-                           scales = "free")
-```
-
-```{r}
-Master_Split <- initial_split(Master, prop = 0.75)
-Master_Training <- training(Master_Split)
-Master_Testing <- testing(Master_Split)
-```
-
-<br> Aaron's Lasso Attempt
-
 
 
 ```{r}
@@ -77,7 +27,7 @@ splits <- trainControl(method = "cv", number = 5)
 set.seed(712)
 Master_CV <- train(
   Price ~ .,
-  data = Master,
+  data = Master.v8,
   method = "glmnet",
   trControl = splits,
   tuneGrid = data.frame(alpha = 1, lambda = 0.000000001),
@@ -86,46 +36,104 @@ Master_CV <- train(
 
 coefficients(Master_CV$finalModel,0.000000001)
 ```
-
-
 ```{r}
-set.seed(456)
-lasso_2 <- train(
-  Price~.,
-  data = Master.v8,
-  method = "glmnet",
-  tuneGrid = data_frame(alpha = 1, lambda = seq(0,10, length = 100)),
-  trControl = trainControl(method = "cv", number = 5, selectionFunction = best),
-  metric = "MAE",
-  na.action = na.omit
-)
+ggplot(Master.v7,
+       aes(x = `CPI`,
+           y = `BTC(%)`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "CPI"))
 
-plot(lasso_2)
+```
+```{r}
+ggplot(Master.v8,
+       aes(x = `BTCS(%)`,
+           y = `BTC(%)`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+
 ```
 
 ```{r}
-lasso_2$bestTune
+ggplot(Master.v7,
+       aes(x = `Addresses balance greater than $10M`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Addresses balance greater than $10`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Address Balance > $10"))
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Network distribution factor`  ,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Network Distribution Factor"))
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Addresses Active Count`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Supply, in addresses (<$1)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Supply, held by top 1% addresses`,
+           y = `Price`)) + 
+         geom_point() +
+         geom_smooth(method = lm, se = FALSE) +
+    scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Supply, held by Top 1%"))
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Supply, current`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
 ```
 
 ```{r}
-coef(lasso_2$bestTune)
+ggplot(Master.v7,
+       aes(x = `Gold(%)`,
+           y = `BTC(%)`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Capitalization of active native units supply, in USD`,
+           y = Price)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
+```
+```{r}
+ggplot(Master.v7,
+       aes(x = `Transactions, adjusted transfer value ($)`,
+           y = Price)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
 ```
 
 ```{r}
-cbind(coef(lasso_2$finalModel, 0.1),
-      coef(lasso_2$finalModel, 1),
-      coef(lasso_2$finalModel, 10))
-```
-
-```{r}
-mylogit <- glm(Price ~ `Gold(%)` + NUPL + Coin_Days_Destroyed + `Transactions, adjusted transfer value ($)` + `Supply, current` + `Supply, held by top 10% addresses` + `Supply, in addresses (<$10)` + `Network distribution factor` + `Capitalization of active native units supply, in USD`, data = Master.v7)
-
-summary(mylogit)
-```
-
-```{r}
-mylogit_2 <- glm(Price ~ `Gold(%)` + NUPL + Coin_Days_Destroyed + `Transactions, adjusted transfer value ($)` + `Network distribution factor`, data = Master.v7)
-
-summary(mylogit_2)
+ggplot(Master.v7,
+       aes(x = NUPL,
+           y = Price)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)
 ```
 
