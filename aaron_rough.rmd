@@ -173,7 +173,7 @@ Bitcoin_cv <- vfold_cv(Master.v8,v = 5)
 penalty_grid <- grid_regular(penalty(), levels = 10)
 ctrl_grid <- control_stack_resamples()
 
-metric <- metric_set(accuracy)
+metric <- metric_set(rmse)
 ```
 
 ```{r}
@@ -185,7 +185,6 @@ lasso_tune <-
     control = ctrl_grid
   )
 
-lasso_tune %>% collect_metrics()
 ```
 
 

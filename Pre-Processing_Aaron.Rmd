@@ -1,0 +1,156 @@
+---
+title: "Data Pre-Processing_Final"
+output: html_document
+---
+
+```{r}
+library(readxl)
+ADS_Project_11_29_2021_v8 <- read_excel("ADS_Project - 11.29.2021.v8.xlsx") %>%
+  mutate(Date = ymd(Date))
+```
+
+
+```{r}
+Master.v8 <- ADS_Project_11_29_2021_v8 %>%
+select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Block Size (mean, in bytes)`, `Block Weight, (mean`, `Capitalization of current supply, MVRV`, `Capitalization of free float, MVRV`, `Difficulty, Last Block`, `Difficulty, Mean Block`, `Mean Transaction Fee per Byte of all blocks, native units`, `Mean Transaction Fee per Byte, native units`, `Median Transaction Fee, native units`, `Median Fee per Transacation, USD`, `Addresses balance greater than 0.001 native units`, `Addresses balance greater than 0.01 native units`, `Addresses balance greater than 0.1 native units`,`Addresses balance greater than 100 native units`, `Addresses balance greater than 100K native units`, `Addresses balance greater than 10 native units`, `Addresses balance greater than 10K native units`, `Addresses balance greater than 1 native units`, `Addresses balance greater than 1K native units`, `Addresses balance greater than 1M native units`, `Addresses balance greater than 1in100K`, `Addresses balance greater than 1in100M`, `Addresses balance greater than 1in10B`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10M`, `Addresses balance greater than 1in1B`, `Addresses balance greater than 1in1K`, `Addressesbalance greater than 1in1M`, `Total Fees, native units`, `Flow to exchanges, native units`, `Flow out exchanges, native units`, `Gas Limit Block`, `Gas Limit, transaction`, `Gas Used, transaction`, `Hash Rate Mean, 30d`, `Issuance, native units`, `Issuance, percent annualized`, `Issuance,  percent daily`, `Issuance Total, native units`,`NVT, adjusted, 90d MA`, `NVT, adjusted, free float,  90d MA`, `ROI, 1y (%)`, `Revenue, per hash unit (Native Currency)`, `Revenue Daily, per hash unit/second (Native Currency)`, `Miner Rev (Native Currency)`, `Supply, 10y Active`, `Supply, 5yr Active`, `Supply, 4yr Active`, `Supply, 3yr Active`, `Supply, 1yr Active Trailing (%)`, `Supply, in addresses (<0.001, native currency)`, `Supply, in addresses (<0.01M, native currency)`, `Supply, in addresses (<0.1, native currency)`, `Supply, in addresses (<1, native currency)`, `Supply, in addresses (<10, native currency)`, `Supply, in addresses (<100, native currency)`, `Supply, in addresses (<100K, native currency)`, `Supply, in addresses (<10K, native currency)`, `Supply, in addresses (<1K, native currency)`, `Supply, in addresses (<1M, native currency)`, `Supply, Miner address with 1 mining entity (native currency)`, `Supply, All Miners (native currency)`, `Transactions, adjusted transfer value (native currency)`, `Transactions, mean transfer value (native currency)`, `Transactions, median transfer value (native currency)`, `Transactions, mean transfer value ($)`, `Transactions, median transfer value (native currency)`, `Velocity, 1yr current supply`, `Volatility, 180d daily returns`, `Volatility, 30d daily returns`, `Price, BTC`, `Transactions, median transfer value ($)`, `Price, ($)`))
+```
+
+
+<br> Data Exploration & Initial Visualizations
+
+```{r}
+ggplot(Master.v8,
+       aes(x = `Block, weight, total`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Block Weight"))
+
+ggplot(Master.v8,
+       aes(x = `Mean Fee per Transaction, USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Mean Transaction Fee"))
+
+ggplot(Master.v8,
+       aes(x = `Total Fees, USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Total Fees"))
+
+ggplot(Master.v8,
+       aes(x = `Gas Limit Block, mean`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Mean Gas Limit Block"))
+
+ggplot(Master.v8,
+       aes(x = `Gas limit Mean, transaction`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Transaction Gas Limit Mean"))
+
+ggplot(Master.v8,
+       aes(x = `Mean Gas Used, transaction`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Mean Gas Used"))
+
+ggplot(Master.v8,
+       aes(x = `Hash Rate, mean`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Hashate Rate"))
+
+ggplot(Master.v8,
+       aes(x = `Issuance, in USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Issuance (USD)"))
+
+ggplot(Master.v8,
+       aes(x = `Issuance Total, in USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Total Issuance"))
+
+ggplot(Master.v8,
+       aes(x = `NVT, adjusted`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "NVT Adjusted"))
+
+ggplot(Master.v8,
+       aes(x = `NVT, adjusted, free float`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "NVT Free Float Adjusted"))
+
+ggplot(Master.v8,
+       aes(x = `ROI, 30D (%)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "30D ROI"))
+
+ggplot(Master.v8,
+       aes(x = `Miner Rev, Total ($)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Miner Revenue"))
+
+ggplot(Master.v8,
+       aes(x = `Revenue Daily, per hash unit/second (USD)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Hashate Rate"))
+
+ggplot(Master.v8,
+       aes(x = `Revenue, per hash unit ($)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Hashate Rate"))
+
+ggplot(Master.v8,
+       aes(x = `Supply Equality Ratio`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Hashate Rate"))
+
+ggplot(Master.v8,
+       aes(x = `Supply, 180D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, 180D Active"))
+
+ggplot(Master.v8,
+       aes(x = `Supply, 1D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, 1D Active"))
+
+ggplot(Master.v8,
+       aes(x = `Supply, 1yr Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, 1yr Active"))
+
+```
+
