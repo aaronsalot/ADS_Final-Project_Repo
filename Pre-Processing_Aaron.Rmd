@@ -530,3 +530,11 @@ p66 + p67 + p68
 
 ```
 
+<br> Additional Cleaning
+
+Based on the graphs above, we can identify variables that are strongly correlated and some that have almost no correlation at all. 
+
+```{r}
+Master.v9 <- Master.v8 %>% select(-c(`Gas limit Mean, transaction`, `Hash Rate, mean`, `Issuance, in USD`, `Issuance Total, in USD`, `ROI, 30D (%)`, `Revenue Daily, per hash unit/second (USD)`, `Revenue, per hash unit ($)`, `Supply Equality Ratio`, `Supply, 180D Active`, `Supply, 1yr Active`, `Supply, 2y Active`, `Supply, 1yr Active`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`,`Transactions, count (per second)`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `Balance_Exchanges_(%)`, `Total_Exchange_Inflow_Volume`))
+```
+
