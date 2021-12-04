@@ -35,6 +35,7 @@ lasso_2$bestTune
 coef(lasso_2$bestTune)
 ```
 
+
 ```{r}
 cbind(coef(lasso_2$finalModel, 0.1),
       coef(lasso_2$finalModel, 1),

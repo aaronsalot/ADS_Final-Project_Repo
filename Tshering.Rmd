@@ -61,13 +61,11 @@ Master <- Master %>% rename(AddressCount = `Addresses Active Count`,
                   lag7day = lag(Price, 7, order_by = Date)) %>%
            replace_na(list(lag1day = 0, lag7day = 0)) %>%
            mutate(Daily_avg = Price - lag1day,
-                  Weekly_avg = (Price - lag7day)/7)
+                  Weekly_avg = (Price - lag7day)/7) %>%
+           mutate(Date = as.numeric(Date))
 ```
 
 
-```{r}
-Master %>% arrange(Date)
-```
 
 ### Train the model - Time Split
 
@@ -89,6 +87,7 @@ lasso_recipe <-
          data = Master_Training) %>%
          step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
          step_dummy(all_nominal(), -all_outcomes()) %>%
+         step_zv(all_predictors()) %>%
          step_normalize(all_predictors(),
                  -all_nominal(),
                  -has_role(match = 'evaluative'))
@@ -100,10 +99,10 @@ lasso_recipe %>%
 
 ```{r}
 lasso_model <- 
-  logistic_reg(mixture = 1) %>%
-  set_engine("glmnet") %>%
-  set_args(penalty = tune()) %>%
-  set_mode("classification")
+  logistic_reg(penalty =0.1, mixture = 1) %>%
+  set_engine("glmnet") 
+  #set_args(penalty = tune()) %>%
+  #set_mode("classification")
 
 lasso_wf <- workflow() %>%
             add_recipe(lasso_recipe) %>%
@@ -117,7 +116,7 @@ Bitcoin_cv <- vfold_cv(Master_Training,v = 5)
 penalty_grid <- grid_regular(penalty(), levels = 10)
 ctrl_grid <- control_stack_resamples()
 
-metric <- metric_set(accuracy)
+#metric <- metric_set(accuracy)
 ```
 
 ```{r}
