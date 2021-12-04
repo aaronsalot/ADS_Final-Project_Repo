@@ -22,6 +22,7 @@ library(moderndive)        # for King County housing data
 library(vip)               # for variable importance plots
 library(patchwork)         # for combining plots nicely
 library(xgboost)
+library(rpart)
 theme_set(theme_minimal()) # Lisa's favorite theme
 ```
 
@@ -54,18 +55,29 @@ Master <- Master %>% rename(AddressCount = `Addresses Active Count`,
 ```
 
 ```{r}
-Master %>% mutate(Date = ymd(Date)) %>% 
-           
+ Master <- Master %>%
+           mutate(Date = ymd(Date)) %>% 
+           mutate(lag1day = lag(Price, 1, order_by = Date),
+                  lag7day = lag(Price, 7, order_by = Date)) %>%
+           replace_na(list(lag1day = 0, lag7day = 0)) %>%
+           mutate(Daily_avg = Price - lag1day,
+                  Weekly_avg = (Price - lag7day)/7)
 ```
 
-### Train the model
 
 ```{r}
-Master_Split <- initial_split(Master, prop = 0.75)
+Master %>% arrange(Date)
+```
+
+### Train the model - Time Split
+
+```{r}
+Master_Split <- initial_time_split(Master, prop = 0.75)
 
 Master_Training <- training(Master_Split)
 Master_Testing <- testing(Master_Split)
 ```
+
 
 ### Lasso Model - Classification
 

@@ -41,3 +41,14 @@ cbind(coef(lasso_2$finalModel, 0.1),
       coef(lasso_2$finalModel, 10))
 ```
 
+<br> Lag intervals
+
+```{r}
+ Master <- Masterselect(Date, Price) %>% 
+           mutate(Date = ymd(Date)) %>% 
+           mutate(lag1day = lag(Price, 1, order_by = Date),
+                  lag7day = lag(Price, 7, order_by = Date)) %>%
+           replace_na(list(lag1day = 0, lag7day = 0)) %>%
+           mutate(Daily_avg = Price - lag1day,
+                  Weekly_avg = (Price - lag7day)/7)
+```
