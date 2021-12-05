@@ -527,7 +527,19 @@ p61 + p62 + p63 + p64 + p65
 p66 + p67 + p68
 
 
+p69 <- ggplot(Master.v8,
+       aes(x = `Price`,
+           y = `Supply, current`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Current Supply"))
+p69
 
+A1 <- lm(`Price`~`Supply, current`, data=Master.v10)
+summary(A1)
+
+A2 <- lm(`BTC(%)`~BTC_Searches, data=Master.v10)
+summary(A2)
 ```
 
 <br> Additional Cleaning
@@ -536,5 +548,9 @@ Based on the graphs above, we can identify variables that are strongly correlate
 
 ```{r}
 Master.v9 <- Master.v8 %>% select(-c(`Gas limit Mean, transaction`, `Hash Rate, mean`, `Issuance, in USD`, `Issuance Total, in USD`, `ROI, 30D (%)`, `Revenue Daily, per hash unit/second (USD)`, `Revenue, per hash unit ($)`, `Supply Equality Ratio`, `Supply, 180D Active`, `Supply, 1yr Active`, `Supply, 2y Active`, `Supply, 1yr Active`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`,`Transactions, count (per second)`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `Balance_Exchanges_(%)`, `Total_Exchange_Inflow_Volume`, `Supply, 30D Active`, `Supply, 7D Active`, `Supply, 90D Active`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in10M)`, `Supply, address balance (<1in10B)`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in1B)`, `Supply, address balance (<1in1K)`, `Supply, address balance (<1in1M)`, `Supply, in addresses (<$1)`, `Supply, in addresses (<$10)`, `Supply, in addresses (<$100)`, `Supply, in addresses (<$100K)`, `Supply, in addresses (<$10K)`, `Supply, in addresses (<$10M)`, `Supply, in addresses (<$1K)`, `Supply, held by top 1% addresses`, `Supply, 10yr expected supply`, `Supply, free float`, `Supply, All Miners ($)`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `CPI_(%)`))
+```
+
+```{r}
+Master.v10 <- Master.v9 %>% mutate(date2 = as.numeric(Date)) 
 ```
 
