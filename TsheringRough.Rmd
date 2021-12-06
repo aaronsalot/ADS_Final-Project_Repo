@@ -53,3 +53,146 @@ cbind(coef(lasso_2$finalModel, 0.1),
            mutate(Daily_avg = Price - lag1day,
                   Weekly_avg = (Price - lag7day)/7)
 ```
+
+
+#### Testing different lags 
+
+
+
+```{r}
+library(readxl)
+library(caret)
+library(tidyverse)         # for graphing and data cleaning
+library(tidymodels)        # for modeling
+library(themis)            # for step functions for unbalanced data
+library(doParallel)        # for parallel processing
+library(stacks)            # for stacking models
+library(naniar)            # for examining missing values (NAs)
+library(lubridate)         # for date manipulation
+library(moderndive)        # for King County housing data
+library(vip)               # for variable importance plots
+library(patchwork)         # for combining plots nicely
+library(xgboost)
+library(rpart)
+theme_set(theme_minimal()) # Lisa's favorite theme
+```
+
+
+```{r}
+ADS_Project_11_29_2021_v8 <- read_excel("ADS_Project - 11.29.2021.v8.xlsx")
+```
+
+### Data Preprocessing 
+
+```{r}
+Master <- ADS_Project_11_29_2021_v8 %>%
+select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Block Size (mean, in bytes)`, `Block Weight, (mean`, `Capitalization of current supply, MVRV`, `Capitalization of free float, MVRV`, `Difficulty, Last Block`, `Difficulty, Mean Block`, `Mean Transaction Fee per Byte of all blocks, native units`, `Mean Transaction Fee per Byte, native units`, `Median Transaction Fee, native units`, `Median Fee per Transacation, USD`, `Addresses balance greater than 0.001 native units`, `Addresses balance greater than 0.01 native units`, `Addresses balance greater than 0.1 native units`,`Addresses balance greater than 100 native units`, `Addresses balance greater than 100K native units`, `Addresses balance greater than 10 native units`, `Addresses balance greater than 10K native units`, `Addresses balance greater than 1 native units`, `Addresses balance greater than 1K native units`, `Addresses balance greater than 1M native units`, `Addresses balance greater than 1in100K`, `Addresses balance greater than 1in100M`, `Addresses balance greater than 1in10B`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10M`, `Addresses balance greater than 1in1B`, `Addresses balance greater than 1in1K`, `Addressesbalance greater than 1in1M`, `Total Fees, native units`, `Flow to exchanges, native units`, `Flow out exchanges, native units`, `Gas Limit Block`, `Gas Limit, transaction`, `Gas Used, transaction`, `Hash Rate Mean, 30d`, `Issuance, native units`, `Issuance, percent annualized`, `Issuance,  percent daily`, `Issuance Total, native units`,`NVT, adjusted, 90d MA`, `NVT, adjusted, free float,  90d MA`, `ROI, 1y (%)`, `Revenue, per hash unit (Native Currency)`, `Revenue Daily, per hash unit/second (Native Currency)`, `Miner Rev (Native Currency)`, `Supply, 10y Active`, `Supply, 5yr Active`, `Supply, 4yr Active`, `Supply, 3yr Active`, `Supply, 1yr Active Trailing (%)`, `Supply, in addresses (<0.001, native currency)`, `Supply, in addresses (<0.01M, native currency)`, `Supply, in addresses (<0.1, native currency)`, `Supply, in addresses (<1, native currency)`, `Supply, in addresses (<10, native currency)`, `Supply, in addresses (<100, native currency)`, `Supply, in addresses (<100K, native currency)`, `Supply, in addresses (<10K, native currency)`, `Supply, in addresses (<1K, native currency)`, `Supply, in addresses (<1M, native currency)`, `Supply, Miner address with 1 mining entity (native currency)`, `Supply, All Miners (native currency)`, `Transactions, adjusted transfer value (native currency)`, `Transactions, mean transfer value (native currency)`, `Transactions, median transfer value (native currency)`, `Transactions, mean transfer value ($)`, `Transactions, median transfer value (native currency)`, `Velocity, 1yr current supply`, `Volatility, 180d daily returns`, `Volatility, 30d daily returns`, `Price, BTC`, `Price, ($)`, `Transactions, median transfer value ($)`))
+```
+
+```{r}
+Master <- Master %>% select(-c(`Gas limit Mean, transaction`, `Hash Rate, mean`, `Issuance, in USD`, `Issuance Total, in USD`, `ROI, 30D (%)`, `Revenue Daily, per hash unit/second (USD)`, `Revenue, per hash unit ($)`, `Supply Equality Ratio`, `Supply, 180D Active`, `Supply, 1yr Active`, `Supply, 2y Active`, `Supply, 1yr Active`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`,`Transactions, count (per second)`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `Balance_Exchanges_(%)`, `Total_Exchange_Inflow_Volume`, `Supply, 30D Active`, `Supply, 7D Active`, `Supply, 90D Active`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in10M)`, `Supply, address balance (<1in10B)`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in1B)`, `Supply, address balance (<1in1K)`, `Supply, address balance (<1in1M)`, `Supply, in addresses (<$1)`, `Supply, in addresses (<$10)`, `Supply, in addresses (<$100)`, `Supply, in addresses (<$100K)`, `Supply, in addresses (<$10K)`, `Supply, in addresses (<$10M)`, `Supply, in addresses (<$1K)`, `Supply, held by top 1% addresses`, `Supply, 10yr expected supply`, `Supply, free float`, `Supply, All Miners ($)`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `CPI_(%)`))
+```
+
+```{r}
+Master <- Master %>% rename(AddressCount = `Addresses Active Count`,
+                  AddressCount100K = `Addresses balance greater than $100K`,
+                  AddressCount10M = `Addresses balance greater than $10M`,
+                  TotalBlockWeight = `Block, weight, total`,
+                  MarketCapitalizationSupply = `Capitalization of Current Supply, in USD`,
+                  TransactionFee = `Mean Fee per Transaction, USD`,
+                  TransactionGas = `Mean Gas Used, transaction`,
+                  BlockGas = `Gas Limit Block, mean`,
+                  NetworkDF = `Network distribution factor`,
+                  Supply = `Supply, Total Active`)
+```
+
+```{r}
+ Master <- Master %>%
+           mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
+           mutate(lag1day = lag(Price, 1, order_by = Date),
+                  lag7day = lag(Price, 7, order_by = Date)) %>%
+           replace_na(list(lag1day = 0, lag7day = 0)) %>% 
+           mutate(Daily_avg = Price - lag1day,
+                  Weekly_avg = (Price - lag7day)/7) %>%
+           select(-c(CPI, `BTC(%)`, `NDQ(%)`, `Gold(%)`, BTC_Searches, `BTCS(%)`))
+```
+
+
+
+### Train the model -  Split
+
+
+```{r}
+Master2 <- Master %>% mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
+           mutate(PriceDirection = ifelse(Price > lag7day, yes = 1, no = 0)) %>%
+           mutate(PriceDirection = as.factor(PriceDirection)) 
+```
+
+```{r}
+set.seed(456)
+Master_Split2 <- initial_split(Master2, prop = 0.75)
+
+Master_Training2 <- training(Master_Split2)
+Master_Testing2 <- testing(Master_Split2)
+```
+
+```{r}
+lasso_recipe <- recipe(PriceDirection ~ .,
+                       data = Master_Training2) %>%
+                step_rm(Date) %>%
+                #step_rm(Date, `NetworkDF`, `Addresses balance greater than $1M`) %>%
+                step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
+                step_dummy(all_nominal(), -all_outcomes()) %>%
+                step_zv(all_predictors()) %>%
+                step_normalize(all_predictors(), -all_nominal())
+
+lasso_recipe %>% prep() %>% juice()
+```
+
+```{r}
+lasso_mod <- logistic_reg(mixture = 1) %>%
+             set_engine("glmnet") %>% 
+             set_args(penalty = tune()) %>% 
+             set_mode("classification")
+
+lasso_wf <- workflow() %>%
+            add_recipe(lasso_recipe) %>%
+            add_model(lasso_mod) 
+```
+
+```{r}
+set.seed(494)
+btc_cv <- vfold_cv(Master_Training2,
+                   v = 10)
+
+penalty_grid <- grid_regular(penalty(),
+                             levels = 10)
+
+ctrl_grid <- control_stack_resamples()
+
+metric <- metric_set(accuracy)
+```
+
+```{r}
+lasso_tune <- lasso_wf %>%
+              tune_grid(resamples = btc_cv,
+                        grid = penalty_grid,
+                        control = ctrl_grid)
+
+lasso_tune %>% collect_metrics()
+```
+
+```{r}
+best_param <- lasso_tune %>%
+              select_best(metric = "accuracy")
+best_param
+```
+
+```{r}
+final_lasso <- lasso_wf %>% finalize_workflow(best_param) %>%
+               fit(data = Master_Training2)
+
+final_lasso %>% pull_workflow_fit() %>% tidy()
+```

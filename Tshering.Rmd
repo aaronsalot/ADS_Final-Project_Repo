@@ -62,7 +62,7 @@ Master <- Master %>% rename(AddressCount = `Addresses Active Count`,
            mutate(Date_num = as.numeric(Date)) %>%
            mutate(lag1day = lag(Price, 1, order_by = Date),
                   lag7day = lag(Price, 7, order_by = Date)) %>%
-           replace_na(list(lag1day = 0, lag7day = 0)) %>%
+           replace_na(list(lag1day = 0, lag7day = 0)) %>% 
            mutate(Daily_avg = Price - lag1day,
                   Weekly_avg = (Price - lag7day)/7) %>%
            select(-c(CPI, `BTC(%)`, `NDQ(%)`, `Gold(%)`, BTC_Searches, `BTCS(%)`))
@@ -70,7 +70,7 @@ Master <- Master %>% rename(AddressCount = `Addresses Active Count`,
 
 
 
-### Train the model - Time Split
+### Train the model -  Split
 
 ```{r}
 set.seed(456)
@@ -90,14 +90,14 @@ set.seed(456)
 lasso_recipe <- 
   recipe(Price~.,
          data = Master_Training) %>%
-         #step_rm(Date, CPI, 'BTC(%)', 'NDQ(%)', 'Gold(%)', BTC_Searches, 'BTCS(%)') %>%
+         step_rm(Date) %>%
          step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
          step_dummy(all_nominal(), -all_outcomes()) %>%
          step_zv(all_predictors()) %>%
-         step_normalize(all_predictors(), -all_nominal()) %>%
-         update_role(all_of(c("Capitalization of free float, in USD", "Date_num", "lag1day", "lag7day", "Daily_avg",  
-                              "Weekly_avg")),
-                    new_role = "evaluative")
+         step_normalize(all_predictors(), -all_nominal())
+         #update_role(all_of(c("Capitalization of free float, in USD", "Date_num", "lag1day", "lag7day", "Daily_avg",  
+                             # "Weekly_avg")),
+                   # new_role = "evaluative")
 
 lasso_recipe %>%
   prep() %>%
@@ -189,21 +189,21 @@ lasso_model_final %>%
 Master2 <- Master %>% mutate(Date = ymd(Date)) %>% 
            mutate(Date_num = as.numeric(Date)) %>%
            mutate(PriceDirection = ifelse(Price > lag1day, yes = 1, no = 0)) %>%
-           mutate(PriceDirection = as.factor(PriceDirection)) %>% 
-           select(-c(CPI, `BTC(%)`, `NDQ(%)`, `Gold(%)`, BTC_Searches, `BTCS(%)`))
+           mutate(PriceDirection = as.factor(PriceDirection)) 
+        
 ```
 
 ```{r}
 set.seed(456)
-Master_Split2 <- initial_time_split(Master2, prop = 0.75)
+Master_Split2 <- initial_split(Master2, prop = 0.75)
 
-Master_Training <- training(Master_Split2)
-Master_Testing <- testing(Master_Split2)
+Master_Training2 <- training(Master_Split2)
+Master_Testing2 <- testing(Master_Split2)
 ```
 
 ```{r}
 lasso_recipe <- recipe(PriceDirection ~ .,
-                       data = Master_Training) %>%
+                       data = Master_Training2) %>%
                 step_rm(Date, `NetworkDF`, `Addresses balance greater than $1M`) %>%
                 step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
                 step_dummy(all_nominal(), -all_outcomes()) %>%
@@ -226,7 +226,7 @@ lasso_wf <- workflow() %>%
 
 ```{r}
 set.seed(494)
-btc_cv <- vfold_cv(Master_Training,
+btc_cv <- vfold_cv(Master_Training2,
                    v = 10)
 
 penalty_grid <- grid_regular(penalty(),
@@ -252,11 +252,44 @@ best_param
 ```
 ```{r}
 final_lasso <- lasso_wf %>% finalize_workflow(best_param) %>%
-               fit(data = Master_Training)
+               fit(data = Master_Training2)
 
 final_lasso %>% pull_workflow_fit() %>% tidy()
 ```
 
+### Random Forest - Classification
 
+```{r}
+set.seed(456)
+rf_recipe <- recipe(PriceDirection ~.,
+                    data = Master_Training2) %>%
+             step_mutate_at(all_numeric(), fn = ~as.numeric(.))
+
+rf_recipe %>% prep() %>% juice()
+```
+```{r}
+rf_model <- rand_forest(mtry = tune(),
+                        min_n = tune(),
+                        trees = 10) %>%
+            set_mode("classification") %>%
+            set_engine("ranger")
+
+rf_workflow <- workflow() %>%
+               add_recipe(rf_recipe) %>%
+               add_model(rf_model)
+
+rf_penalty_grid <- grid_regular(finalize(mtry(),
+                                Master_Training2 %>%
+                                select(-PriceDirection)),
+                                min_n(),
+                                levels = 2)
+
+rf_tune <- rf_workflow %>%
+           tune_grid(resamples = btc_cv,
+                     grid = rf_penalty_grid,
+                     control = control_stack_grid())
+
+rf_tune %>% collect_metrics()
+```
 
 
