@@ -67,6 +67,57 @@ Master_Training <- training(Master_Split)
 Master_Testing <- testing(Master_Split)
 ```
 
+
+```{r}
+Master_v1 <- Master %>% select(-c(`All Addresses balance`, `Addresses balance greater than $100`, `AddressCount100K`, `Addresses balance greater than $10`, `AddressCount10M`, `Addresses balance greater than $1`, `TotalBlockWeight`, `Capitalization of active native units supply, in USD`, `MarketCapitalizationSupply`, `Capitalization of free float, in USD`, `Capitalization realized, USD`, `TransactionFee`, `BlockGas`, `NVT, adjusted, free float`, `Miner Rev ($)`, `Supply`, `Supply, current`, `Flow transfers exchanges`, `Supply, address balance (<1in100M)`, `Supply, in addresses (<$1M)`, `Transactions, transfer count`, `NUPL`, `rHODL`, ))
+```
+
+
+```{r}
+Master_v1 <- Master %>% mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
+           mutate(PriceDirection = ifelse(Price > lag1day, yes = 1, no = 0)) %>%
+           mutate(PriceDirection = as.factor(PriceDirection)) 
+        
+```
+
+```{r}
+set.seed(456)
+rf_recipe <- recipe(PriceDirection ~.,
+                    data = Master_v1) %>%
+             step_mutate_at(all_numeric(), fn = ~as.numeric(.))
+
+rf_recipe %>% prep() %>% juice()
+```
+```{r}
+rf_model <- rand_forest(mtry = tune(),
+                        min_n = tune(),
+                        trees = 10) %>%
+            set_mode("classification") %>%
+            set_engine("ranger")
+
+rf_workflow <- workflow() %>%
+               add_recipe(rf_recipe) %>%
+               add_model(rf_model)
+
+rf_penalty_grid <- grid_regular(finalize(mtry(),
+                                Master_Training2 %>%
+                                select(-PriceDirection)),
+                                min_n(),
+                                levels = 2)
+
+rf_tune <- rf_workflow %>%
+           tune_grid(resamples = btc_cv,
+                     grid = rf_penalty_grid,
+                     control = control_stack_grid())
+
+rf_tune %>% collect_metrics()
+```
+
+
+
+
+
 <br> Aaron's Lasso Attempt
 
 
@@ -77,7 +128,7 @@ splits <- trainControl(method = "cv", number = 5)
 set.seed(712)
 Master_CV <- train(
   Price ~ .,
-  data = Master.v8,
+  data = Master_v1,
   method = "glmnet",
   trControl = splits,
   tuneGrid = data.frame(alpha = 1, lambda = 0.000000001),
