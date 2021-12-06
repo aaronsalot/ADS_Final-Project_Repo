@@ -8,6 +8,7 @@ output: html_document
 ```
 
 
+
 ```{r}
 library(readxl)
 library(caret)
@@ -39,6 +40,10 @@ select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Bloc
 ```
 
 ```{r}
+Master <- Master %>% select(-c(`Gas limit Mean, transaction`, `Hash Rate, mean`, `Issuance, in USD`, `Issuance Total, in USD`, `ROI, 30D (%)`, `Revenue Daily, per hash unit/second (USD)`, `Revenue, per hash unit ($)`, `Supply Equality Ratio`, `Supply, 180D Active`, `Supply, 1yr Active`, `Supply, 2y Active`, `Supply, 1yr Active`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`,`Transactions, count (per second)`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `Balance_Exchanges_(%)`, `Total_Exchange_Inflow_Volume`, `Supply, 30D Active`, `Supply, 7D Active`, `Supply, 90D Active`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in10M)`, `Supply, address balance (<1in10B)`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in1B)`, `Supply, address balance (<1in1K)`, `Supply, address balance (<1in1M)`, `Supply, in addresses (<$1)`, `Supply, in addresses (<$10)`, `Supply, in addresses (<$100)`, `Supply, in addresses (<$100K)`, `Supply, in addresses (<$10K)`, `Supply, in addresses (<$10M)`, `Supply, in addresses (<$1K)`, `Supply, held by top 1% addresses`, `Supply, 10yr expected supply`, `Supply, free float`, `Supply, All Miners ($)`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `CPI_(%)`))
+```
+
+```{r}
 Master <- Master %>% rename(AddressCount = `Addresses Active Count`,
                   AddressCount100K = `Addresses balance greater than $100K`,
                   AddressCount10M = `Addresses balance greater than $10M`,
@@ -47,22 +52,19 @@ Master <- Master %>% rename(AddressCount = `Addresses Active Count`,
                   TransactionFee = `Mean Fee per Transaction, USD`,
                   TransactionGas = `Mean Gas Used, transaction`,
                   BlockGas = `Gas Limit Block, mean`,
-                  HashRate = `Hash Rate, mean`,
                   NetworkDF = `Network distribution factor`,
-                  HashRevenue = `Revenue, per hash unit ($)`,
-                  Supply = `Supply, Total Active`,
-                  TransactionsCount = `Transactions, count`)
+                  Supply = `Supply, Total Active`)
 ```
 
 ```{r}
  Master <- Master %>%
            mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
            mutate(lag1day = lag(Price, 1, order_by = Date),
                   lag7day = lag(Price, 7, order_by = Date)) %>%
            replace_na(list(lag1day = 0, lag7day = 0)) %>%
            mutate(Daily_avg = Price - lag1day,
-                  Weekly_avg = (Price - lag7day)/7) %>%
-           mutate(Date = as.numeric(Date))
+                  Weekly_avg = (Price - lag7day)/7) 
 ```
 
 
@@ -85,12 +87,13 @@ set.seed(456)
 lasso_recipe <- 
   recipe(Price~.,
          data = Master_Training) %>%
+         step_rm(Date, CPI, 'BTC(%)', 'NDQ(%)', 'Gold(%)', BTC_Searches, 'BTCS(%)') %>%
          step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
          step_dummy(all_nominal(), -all_outcomes()) %>%
          step_zv(all_predictors()) %>%
          step_normalize(all_predictors(),
-                 -all_nominal(),
-                 -has_role(match = 'evaluative'))
+                 -all_nominal())
+                # -has_role(match = 'evaluative'))
 
 lasso_recipe %>%
   prep() %>%
@@ -98,16 +101,22 @@ lasso_recipe %>%
 ```
 
 ```{r}
-lasso_model <- 
-  logistic_reg(penalty =0.1, mixture = 1) %>%
-  set_engine("glmnet") 
-  #set_args(penalty = tune()) %>%
-  #set_mode("classification")
+lasso_model <- linear_reg(penalty =1, 
+                          mixture = 1) %>%
+               set_engine("glmnet") 
 
 lasso_wf <- workflow() %>%
-            add_recipe(lasso_recipe) %>%
-            add_model(lasso_model)
+            add_recipe(lasso_recipe) 
+  
+lasso_fit <- lasso_wf %>%
+             add_model(lasso_model) %>%
+             fit(data = Master_Training)
+
+lasso_fit %>% pull_workflow_fit() %>% tidy()
 ```
+
+
+# Tuning 
 
 ```{r}
 set.seed(456)
@@ -116,18 +125,33 @@ Bitcoin_cv <- vfold_cv(Master_Training,v = 5)
 penalty_grid <- grid_regular(penalty(), levels = 10)
 ctrl_grid <- control_stack_resamples()
 
-#metric <- metric_set(accuracy)
+tune_spec <- linear_reg(penalty = tune(), mixture = 1) %>%
+             set_engine("glmnet")
+
+lambda_grid <- grid_regular(penalty(), levels = 50)
 ```
 
 ```{r}
-lasso_tune <- 
-  lasso_wf %>% 
-  tune_grid(
-    resamples = Bitcoin_cv,
-    grid = penalty_grid,
-    control = ctrl_grid
-  )
+doParallel::registerDoParallel()
 
-lasso_tune %>% collect_metrics()
+set.seed(456)
+lasso_grid <- tune_grid(lasso_wf %>% add_model(tune_spec),
+                        resamples = Bitcoin_cv,
+                        grid = penalty_grid)
+
+lasso_grid %>% collect_metrics()
+```
+
+```{r}
+lasso_grid %>% collect_metrics() %>%
+               ggplot(aes(penalty, mean, color = .metric)) + 
+               geom_errorbar(aes(
+                 ymin = mean - std_err,
+                 ymax = mean + std_err),
+                 alpha = 0.5) +
+               geom_line(size = 1.5) + 
+               facet_wrap(~.metric, scales = "free", nrow = 2) + 
+               scale_x_log10() + 
+               theme(legend.position = "none")
 ```
 
