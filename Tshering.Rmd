@@ -79,7 +79,15 @@ Master_Testing <- testing(Master_Split)
 ```
 
 
-### Lasso Model - Classification
+### Lasso Model - Regression
+
+```{r}
+Master_Training <- Master_Training %>% select(-Date, -CPI, -`BTC(%)`, -`NDQ(%)`, -`Gold(%)`, -BTC_Searches, -`BTCS(%)`)
+```
+
+```{r}
+Master_Testing <- Master_Testing %>% select(-Date, -CPI, -`BTC(%)`, -`NDQ(%)`, -`Gold(%)`, -BTC_Searches, -`BTCS(%)`)
+```
 
 ```{r}
 set.seed(456)
@@ -87,13 +95,12 @@ set.seed(456)
 lasso_recipe <- 
   recipe(Price~.,
          data = Master_Training) %>%
-         step_rm(Date, CPI, 'BTC(%)', 'NDQ(%)', 'Gold(%)', BTC_Searches, 'BTCS(%)') %>%
+         #step_rm(Date, CPI, 'BTC(%)', 'NDQ(%)', 'Gold(%)', BTC_Searches, 'BTCS(%)') %>%
          step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
          step_dummy(all_nominal(), -all_outcomes()) %>%
          step_zv(all_predictors()) %>%
          step_normalize(all_predictors(),
                  -all_nominal())
-                # -has_role(match = 'evaluative'))
 
 lasso_recipe %>%
   prep() %>%
@@ -153,5 +160,30 @@ lasso_grid %>% collect_metrics() %>%
                facet_wrap(~.metric, scales = "free", nrow = 2) + 
                scale_x_log10() + 
                theme(legend.position = "none")
+```
+
+```{r}
+Best_rmse <- lasso_grid %>%
+             select_best("rmse", maximise = FALSE)
+
+lasso_model_final <- finalize_workflow(
+                     lasso_wf %>% add_model(tune_spec),
+                     Best_rmse)
+```
+
+
+
+```{r}
+library(vip)
+lasso_model_final %>% 
+      fit(Master_Training) %>%
+      pull_workflow_fit() %>%
+      vi(lamda = lowest_rmse$penalty) %>%
+      mutate(Importance = abs(Importance),
+             Variable = fct_reorder(Variable, Importance)) %>%
+     ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+     geom_col() + 
+     scale_x_continuous(expand = c(0,0)) +
+     labs(y = NULL)
 ```
 
