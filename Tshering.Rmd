@@ -24,6 +24,7 @@ library(vip)               # for variable importance plots
 library(patchwork)         # for combining plots nicely
 library(xgboost)
 library(rpart)
+library(h2o)
 theme_set(theme_minimal()) # Lisa's favorite theme
 ```
 
@@ -164,6 +165,16 @@ final_lasso %>%
      labs(y = NULL)
 ```
 
+```{r}
+lasso_fit <- final_lasso %>%
+  last_fit(Master_Split)
+
+lasso_fit
+
+test_performance_lasso <- lasso_fit %>% collect_metrics()
+test_performance_lasso
+```
+
 ### Random Forest - Classification
 
 ```{r}
@@ -202,6 +213,26 @@ rf_tune %>% collect_metrics()
 
 ```
 
+```{r}
+best_param_rf <- rf_tune %>%
+              select_best(metric = "accuracy")
+best_param_rf
+```
+
+```{r}
+rf_workflow <- rf_workflow %>% finalize_workflow(best_param_rf)
+```
+
+```{r}
+rf_fit <- rf_workflow %>%
+  last_fit(Master_Split)
+
+rf_fit
+
+test_performance_rf <- rf_fit %>% collect_metrics()
+test_performance_rf
+```
+
 ### Decision tree 
 
 ```{r}
@@ -226,6 +257,41 @@ tree_fit <-
 
 collect_metrics(tree_fit)
 ```
+
+```{r}
+best_param_tree <- tree_fit %>%
+              select_best(metric = "accuracy")
+best_param_tree
+```
+
+```{r}
+tree_final <- tree_workflow %>% finalize_workflow(best_param_rf)
+
+Tree_fit <- tree_final %>%
+  last_fit(Master_Split)
+
+Tree_fit
+
+test_performance_tree <- Tree_fit %>% collect_metrics()
+test_performance_tree
+```
+
+
+```{r}
+library(vip)
+tree_final %>% 
+      fit(Master_Training) %>%
+      extract_fit_parsnip() %>%
+      vi(accuracy = best_param_tree) %>%
+      mutate(Importance = abs(Importance),
+             Variable = fct_reorder(Variable, Importance)) %>%
+     ggplot(aes(x = Importance, y = Variable)) +
+     geom_col() + 
+     scale_x_continuous(expand = c(0,0)) +
+     labs(y = NULL)
+```
+
+
 ### Stacking 
 
 ```{r}
@@ -257,6 +323,7 @@ Models_blend <-
   blend_predictions()
 Models_blend
 ```
+
 ```{r}
 Model_final_stack <- Models_blend %>%
   fit_members() 
@@ -327,9 +394,27 @@ svm_initial <-
             control = control_stack_grid())
 ```
 
-
 ```{r}
 collect_metrics(svm_initial)
+```
+
+
+```{r}
+best_param_svm <- svm_initial %>%
+              select_best(metric = "accuracy")
+best_param_svm
+```
+
+```{r}
+svm_final <- svm_wflow %>% finalize_workflow(best_param_svm)
+
+svm_fit <- svm_final %>%
+  last_fit(Master_Split)
+
+svm_fit
+
+test_performance_svm <- svm_fit %>% collect_metrics()
+test_performance_svm
 ```
 
 #### Bayesian Optimization for SVM 
@@ -355,5 +440,23 @@ svm_bo <-
 show_best(svm_bo)
 ```
 
+```{r}
+svm_bo %>% collect_metrics()
+```
 
+```{r}
+best_param_svmbo <- svm_bo %>%
+              select_best(metric = "accuracy")
+best_param_svmbo
+```
 
+```{r}
+svm_bo_final <- svm_bo %>% finalize_workflow(best_param_svmbo)
+
+svm_bo_fit <- svm_final %>%
+  last_fit(Master_Split)
+
+svm_bo_fit
+
+test_performance_svmbo <- svm_bo_fit %>% collect_metrics()
+test_performance_svmbo
