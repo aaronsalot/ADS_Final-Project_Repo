@@ -279,6 +279,11 @@ Master_Testing2 <- testing(Master_Split2)
 ```
 
 ```{r}
+btc_cv2 <- vfold_cv(Master_Training2,
+                   v = 10)
+```
+
+```{r}
 svm_rec <- 
   recipe(PriceDirection ~ ., data = Master_2) 
 
@@ -295,46 +300,60 @@ svm_wflow <-
   add_recipe(svm_rec)
 ```
 
+```{r}
+cost()
+rbf_sigma()
+```
 
 ```{r}
-# SVM_model <- svm_poly(PriceDirection~., 
-#                       data = Master_Training,
-#                       mode = "classification", 
-#                       engine = "kernlab",
-#                       cost = seq(0.5, 10, length = 40),
-#                       degree = 2,
-#                       scale_factor = 1)
+svm_param <- 
+  svm_wflow %>% 
+  parameters() %>% 
+  update(rbf_sigma = rbf_sigma(c(-7, -1)))
+
+start_grid <- 
+  svm_param %>% 
+  update(
+    cost = cost(c(-6, 1)),
+    rbf_sigma = rbf_sigma(c(-6, -4))) %>% 
+  grid_regular(levels = 2)
+
+set.seed(456)
+
+svm_initial <- 
+  svm_wflow %>% 
+  tune_grid(resamples = btc_cv2, 
+            grid = start_grid, 
+            control = control_stack_grid())
 ```
 
 
 ```{r}
-# set.seed(456)
-# SVM_model <- train(
-#   as.factor(PriceDirection)~ .+ -PriceDirection,
-#   data = Master_2,
-#   method = "svmPoly",
-#   tuneGrid = expand.grid(degree = 2, scale = 1, C = seq(0.5, 10, length = 40)),
-#   trControl = trainControl(method = "cv", number = 10, selectionFunction = "oneSE", classProbs =  TRUE),
-#   metric = "Accuracy",
-#   na.action = na.omit,
-# )
+collect_metrics(svm_initial)
+```
+
+#### Bayesian Optimization for SVM 
+
+```{r}
+ctrl <- control_bayes(verbose = TRUE)
+
+set.seed(420)
+
+svm_bo <-
+  svm_wflow %>%
+  tune_bayes(
+    resamples = btc_cv2, 
+    metrics = NULL, 
+    initial = svm_initial, # tune_grid object produced earlier
+    param_info = svm_param, # specified earlier too, with our new bounds for rbf_sigma
+    iter = 27, # maximum number of search iterations
+    control = ctrl
+  )
 ```
 
 ```{r}
-plot(SVM_model)
+show_best(svm_bo)
 ```
 
-```{r}
-SVM_model$bestTune$C
-```
 
-```{r}
-kernlab:: plot(SVM_model$finalModel)
-```
-
-```{r}
-predict_data <- na.omit(SVM_model$trainingData)
-classifications <- predict(SVM_model, Master_2, type = "raw")
-SVM_model$resample %>% summarize(mean(Accuracy))
-```
 

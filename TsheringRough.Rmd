@@ -281,3 +281,49 @@ final_lasso <- lasso_wf %>% finalize_workflow(best_param) %>%
 
 final_lasso %>% pull_workflow_fit() %>% tidy()
 ```
+
+
+
+
+
+```{r}
+# SVM_model <- svm_poly(PriceDirection~., 
+#                       data = Master_Training,
+#                       mode = "classification", 
+#                       engine = "kernlab",
+#                       cost = seq(0.5, 10, length = 40),
+#                       degree = 2,
+#                       scale_factor = 1)
+```
+
+
+```{r}
+# set.seed(456)
+# SVM_model <- train(
+#   as.factor(PriceDirection)~ .+ -PriceDirection,
+#   data = Master_2,
+#   method = "svmPoly",
+#   tuneGrid = expand.grid(degree = 2, scale = 1, C = seq(0.5, 10, length = 40)),
+#   trControl = trainControl(method = "cv", number = 10, selectionFunction = "oneSE", classProbs =  TRUE),
+#   metric = "Accuracy",
+#   na.action = na.omit,
+# )
+```
+
+```{r}
+plot(SVM_model)
+```
+
+``{r}
+SVM_model$bestTune$C
+```
+
+```{r}
+kernlab:: plot(SVM_model$finalModel)
+```
+
+```{r}
+predict_data <- na.omit(SVM_model$trainingData)
+classifications <- predict(SVM_model, Master_2, type = "raw")
+SVM_model$resample %>% summarize(mean(Accuracy))
+```
