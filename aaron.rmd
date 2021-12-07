@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(readxl)
-ADS_Project_11_24_2021_v4 <- read_excel("ADS_Project - 11.24.2021.v4.xlsx") %>% 
+ADS_Project_11_24_2021_v8 <- read_excel("ADS_Project - 11.29.2021.v8.xlsx") %>% 
   mutate(Date = ymd(Date))
 ```
 
@@ -44,7 +44,7 @@ After collecting data from Glassnodes and CoinMetrics API, we did some data clea
 
 
 ```{r}
-Master <- ADS_Project_11_24_2021_v4 %>%
+Master <- ADS_Project_11_24_2021_v8 %>%
 select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Block Size (mean, in bytes)`, `Block Weight, (mean`, `Capitalization of current supply, MVRV`, `Capitalization of free float, MVRV`, `Difficulty, Last Block`, `Difficulty, Mean Block`, `Mean Transaction Fee per Byte of all blocks, native units`, `Mean Transaction Fee per Byte, native units`, `Median Transaction Fee, native units`, `Median Fee per Transacation, USD`, `Addresses balance greater than 0.001 native units`, `Addresses balance greater than 0.01 native units`, `Addresses balance greater than 0.1 native units`,`Addresses balance greater than 100 native units`, `Addresses balance greater than 100K native units`, `Addresses balance greater than 10 native units`, `Addresses balance greater than 10K native units`, `Addresses balance greater than 1 native units`, `Addresses balance greater than 1K native units`, `Addresses balance greater than 1M native units`, `Addresses balance greater than 1in100K`, `Addresses balance greater than 1in100M`, `Addresses balance greater than 1in10B`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10M`, `Addresses balance greater than 1in1B`, `Addresses balance greater than 1in1K`, `Addressesbalance greater than 1in1M`, `Total Fees, native units`, `Flow to exchanges, native units`, `Flow out exchanges, native units`, `Gas Limit Block`, `Gas Limit, transaction`, `Gas Used, transaction`, `Hash Rate Mean, 30d`, `Issuance, native units`, `Issuance, percent annualized`, `Issuance,  percent daily`, `Issuance Total, native units`,`NVT, adjusted, 90d MA`, `NVT, adjusted, free float,  90d MA`, `ROI, 1y (%)`, `Revenue, per hash unit (Native Currency)`, `Revenue Daily, per hash unit/second (Native Currency)`, `Miner Rev (Native Currency)`, `Supply, 10y Active`, `Supply, 5yr Active`, `Supply, 4yr Active`, `Supply, 3yr Active`, `Supply, 1yr Active Trailing (%)`, `Supply, in addresses (<0.001, native currency)`, `Supply, in addresses (<0.01M, native currency)`, `Supply, in addresses (<0.1, native currency)`, `Supply, in addresses (<1, native currency)`, `Supply, in addresses (<10, native currency)`, `Supply, in addresses (<100, native currency)`, `Supply, in addresses (<100K, native currency)`, `Supply, in addresses (<10K, native currency)`, `Supply, in addresses (<1K, native currency)`, `Supply, in addresses (<1M, native currency)`, `Supply, Miner address with 1 mining entity (native currency)`, `Supply, All Miners (native currency)`, `Transactions, adjusted transfer value (native currency)`, `Transactions, mean transfer value (native currency)`, `Transactions, median transfer value (native currency)`, `Transactions, mean transfer value ($)`, `Transactions, median transfer value (native currency)`, `Velocity, 1yr current supply`, `Volatility, 180d daily returns`, `Volatility, 30d daily returns`, `Price, BTC`, `Transactions, median transfer value ($)`, `Price, ($)`))
 ```
 
@@ -62,19 +62,31 @@ Master.v8 %>% select(where(is.numeric)) %>%
 ```
 
 ```{r}
-Master_Split <- initial_split(Master, prop = 0.75)
+Master_Split <- initial_split(Master.v9, prop = 0.75)
 Master_Training <- training(Master_Split)
 Master_Testing <- testing(Master_Split)
 ```
 
 
 ```{r}
-Master_v1 <- Master %>% select(-c(`All Addresses balance`, `Addresses balance greater than $100`, `AddressCount100K`, `Addresses balance greater than $10`, `AddressCount10M`, `Addresses balance greater than $1`, `TotalBlockWeight`, `Capitalization of active native units supply, in USD`, `MarketCapitalizationSupply`, `Capitalization of free float, in USD`, `Capitalization realized, USD`, `TransactionFee`, `BlockGas`, `NVT, adjusted, free float`, `Miner Rev ($)`, `Supply`, `Supply, current`, `Flow transfers exchanges`, `Supply, address balance (<1in100M)`, `Supply, in addresses (<$1M)`, `Transactions, transfer count`, `NUPL`, `rHODL`, ))
+Master.v9 <- Master.v9 %>% select(-c(`All Addresses balance`, `Addresses balance greater than $100`, `Addresses balance greater than $10`, `Addresses balance greater than $1`, `Capitalization of active native units supply, in USD`, `Capitalization of free float, in USD`, `Capitalization realized, USD`, `NVT, adjusted, free float`, `Miner Rev ($)`, `Supply, current`, `Flow transfers exchanges`, `Supply, address balance (<1in100M)`, `Supply, in addresses (<$1M)`, `Transactions, transfer count`, `NUPL`, `rHODL`))
+```
+
+```{r}
+ Master.v9 <- Master.v9 %>%
+           mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
+           mutate(lag1day = lag(Price, 1, order_by = Date),
+                  lag7day = lag(Price, 7, order_by = Date)) %>%
+           replace_na(list(lag1day = 0, lag7day = 0)) %>% 
+           mutate(Daily_avg = Price - lag1day,
+                  Weekly_avg = (Price - lag7day)/7) %>%
+           select(-c(CPI, `BTC(%)`, `NDQ(%)`, `Gold(%)`, BTC_Searches, `BTCS(%)`))
 ```
 
 
 ```{r}
-Master_v1 <- Master %>% mutate(Date = ymd(Date)) %>% 
+Master.v9 <- Master.v9 %>% mutate(Date = ymd(Date)) %>% 
            mutate(Date_num = as.numeric(Date)) %>%
            mutate(PriceDirection = ifelse(Price > lag1day, yes = 1, no = 0)) %>%
            mutate(PriceDirection = as.factor(PriceDirection)) 
@@ -82,13 +94,55 @@ Master_v1 <- Master %>% mutate(Date = ymd(Date)) %>%
 ```
 
 ```{r}
+Master.v9 <- Master.v9 %>% select(-c(`Addresses Active Count`, `Addresses balance greater than $100K`, `Addresses balance greater than $10K`, `Addresses balance greater than $1K`, `Block, weight, total`, `Addresses balance greater than $1M`))
+```
+
+
+```{r}
+mod1 <- lm(Price ~ `Network distribution factor`, data = Master.v9)
+mod2 <- lm(Price ~ `Capitalization of Current Supply, in USD`, data = Master.v9)
+mod3 <- lm(Price ~ `Supply, held by top 10% addresses`, data = Master.v9)
+summary(mod1)
+summary(mod2)
+summary(mod3)
+mylogit <- lm(Price ~ `Network distribution factor` + `Capitalization of Current Supply, in USD` + `Supply, held by top 10% addresses`, data = Master.v9)
+
+summary(mylogit)
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
 set.seed(456)
 rf_recipe <- recipe(PriceDirection ~.,
-                    data = Master_v1) %>%
+                    data = Master_Training) %>%
              step_mutate_at(all_numeric(), fn = ~as.numeric(.))
 
 rf_recipe %>% prep() %>% juice()
 ```
+
+```{r}
+set.seed(494)
+btc_cv <- vfold_cv(Master_Training,
+                   v = 10)
+
+penalty_grid <- grid_regular(penalty(),
+                             levels = 10)
+
+ctrl_grid <- control_stack_resamples()
+
+metric <- metric_set(accuracy)
+```
+
+
 ```{r}
 rf_model <- rand_forest(mtry = tune(),
                         min_n = tune(),
@@ -101,7 +155,7 @@ rf_workflow <- workflow() %>%
                add_model(rf_model)
 
 rf_penalty_grid <- grid_regular(finalize(mtry(),
-                                Master_Training2 %>%
+                                Master_Training %>%
                                 select(-PriceDirection)),
                                 min_n(),
                                 levels = 2)
