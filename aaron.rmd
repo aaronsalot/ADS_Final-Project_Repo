@@ -243,3 +243,37 @@ rf_tune %>%
   labs(x = NULL, y = "AUC")
 
 ```
+```{r}
+p70 <- ggplot(Master,
+       aes(x = `Date_num`,
+           y = `Price`)) + 
+         geom_line() + 
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "SOPR"))
+p70
+
+```
+
+```{r}
+library(scales)
+ggplot(Master, aes(x=`Date_num`,y=Price, color = SOPR)) + 
+  geom_line()
+
+ggplot(Master, aes(x=`Date_num`,y=SOPR, color = SOPR)) + 
+  geom_line()
+
+ggplot(Master, aes(x=`Date_num`,y=`Gas Limit Block, mean`, color = SOPR)) + 
+  geom_line()
+ggplot(Master, aes(x=`Date_num`,y=`Adjusted_Dormancy_Flow`, color = SOPR)) + 
+  geom_line()
+ggplot(Master, aes(x=`Date_num`,y=`Addresses balance greater than $10M`, color = SOPR)) + 
+  geom_line()
+ggplot(Master, aes(x=`Date_num`,y=`Supply, held by top 100 addresses`, color = SOPR)) + 
+  geom_line()
+ggplot(Master, aes(x=`Date_num`,y=`Adjusted_Dormancy_Flow`, color = SOPR)) + 
+  geom_line()
+ggplot(Master, aes(x=`Date_num`,y=`Coin_Years_Destroyed`, color = SOPR)) + 
+  geom_line()
+ggplot(Master, aes(x=`Date_num`,y=`NVT, adjusted`, color = SOPR)) + 
+  geom_line()
+```
+
