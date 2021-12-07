@@ -9,38 +9,123 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
-library(caret)
-```
+### Train the model -  Split
 
 ```{r}
 set.seed(456)
-lasso_2 <- train(
-  Price~.,
-  data = Master,
-  method = "glmnet",
-  tuneGrid = data_frame(alpha = 1, lambda = seq(0,10, length = 100)),
-  trControl = trainControl(method = "cv", number = 5, selectionFunction = best),
-  metric = "MAE",
-  na.action = na.omit
-)
+Master_Split <- initial_time_split(Master, prop = 0.75)
 
-plot(lasso_2)
+Master_Training <- training(Master_Split)
+Master_Testing <- testing(Master_Split)
 ```
 
-```{r}
-lasso_2$bestTune
-```
-```{r}
-coef(lasso_2$bestTune)
-```
+
+### Lasso Model - Predictive Regression
 
 
 ```{r}
-cbind(coef(lasso_2$finalModel, 0.1),
-      coef(lasso_2$finalModel, 1),
-      coef(lasso_2$finalModel, 10))
+set.seed(456)
+
+lasso_recipe <- 
+  recipe(Price~.,
+         data = Master_Training) %>%
+         step_rm(Date, Weekly_avg, Daily_avg, lag7day, lag1day, `Network distribution factor`,`Capitalization of Current Supply, in USD`, `Supply, held by top 10% addresses`) %>%
+         step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
+         step_dummy(all_nominal(), -all_outcomes()) %>%
+         update_role(Date_num, new_role = "ID") %>%
+         step_zv(all_predictors()) %>%
+         step_normalize(all_predictors(), -all_nominal())
+         #update_role(all_of(c("Capitalization of free float, in USD", "Date_num", "lag1day", "lag7day", "Daily_avg",  
+                             # "Weekly_avg")),
+                   # new_role = "evaluative")
+
+lasso_recipe %>%
+  prep() %>%
+  juice()
 ```
+
+```{r}
+lasso_model <- linear_reg(penalty =1, 
+                          mixture = 1) %>%
+               set_engine("glmnet") 
+
+lasso_wf <- workflow() %>%
+            add_recipe(lasso_recipe) 
+  
+lasso_fit <- lasso_wf %>%
+             add_model(lasso_model) %>%
+             fit(data = Master_Training)
+
+lasso_fit %>% pull_workflow_fit() %>% tidy()
+```
+
+tuning 
+
+```{r}
+set.seed(456)
+
+Bitcoin_cv <- vfold_cv(Master_Training,v = 5)
+penalty_grid <- grid_regular(penalty(), levels = 10)
+ctrl_grid <- control_stack_resamples()
+
+tune_spec <- linear_reg(penalty = tune(), mixture = 1) %>%
+             set_engine("glmnet")
+
+lambda_grid <- grid_regular(penalty(), levels = 50)
+```
+
+```{r}
+doParallel::registerDoParallel()
+
+set.seed(456)
+lasso_grid <- tune_grid(lasso_wf %>% add_model(tune_spec),
+                        resamples = Bitcoin_cv,
+                        grid = penalty_grid)
+
+lasso_grid %>% collect_metrics()
+```
+
+```{r}
+lasso_grid %>% collect_metrics() %>%
+               ggplot(aes(penalty, mean, color = .metric)) + 
+               geom_errorbar(aes(
+                 ymin = mean - std_err,
+                 ymax = mean + std_err),
+                 alpha = 0.5) +
+               geom_line(size = 1.5) + 
+               facet_wrap(~.metric, scales = "free", nrow = 2) + 
+               scale_x_log10() + 
+               theme(legend.position = "none")
+```
+
+```{r}
+Best_rmse <- lasso_grid %>%
+             select_best("rmse", maximise = FALSE)
+
+lasso_model_final <- finalize_workflow(
+                     lasso_wf %>% add_model(tune_spec),
+                     Best_rmse)
+```
+
+```{r}
+library(vip)
+lasso_model_final %>% 
+      fit(Master_Training) %>%
+      pull_workflow_fit() %>%
+      vi(lamda = lowest_rmse$penalty) %>%
+      mutate(Importance = abs(Importance),
+             Variable = fct_reorder(Variable, Importance)) %>%
+     ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+     geom_col() + 
+     scale_x_continuous(expand = c(0,0)) +
+     labs(y = NULL)
+```
+
+```{r}
+last_fit(lasso_model_final,
+         Master_Split) %>% collect_metrics()
+```
+
 
 <br> Lag intervals
 
