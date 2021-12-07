@@ -265,16 +265,6 @@ Model_final_stack <- Models_blend %>%
 ### SVM - Classification 
 
 ```{r}
-SVM_model <- svm_poly(PriceDirection~., 
-                      data = Master_Training,
-                      mode = "classification", 
-                      engine = "kernlab",
-                      cost = seq(0.5, 10, length = 40),
-                      degree = 2,
-                      scale_factor = 1)
-```
-
-```{r}
 Master_2 <- Master %>%
             mutate("PriceDirection" = factor(ifelse(PriceDirection == "1" | PriceDirection != "0",
                                                     "Price_Increase", "Price_Decrease"),
@@ -282,16 +272,52 @@ Master_2 <- Master %>%
 ```
 
 ```{r}
-set.seed(456)
-SVM_model <- train(
-  as.factor(PriceDirection)~ .,
-  data = Master_2,
-  method = "svmPoly",
-  tuneGrid = expand.grid(degree = 2, scale = 1, C = seq(0.5, 10, length = 40)),
-  trControl = trainControl(method = "cv", number = 10, selectionFunction = "oneSE", classProbs =  TRUE),
-  metric = "Accuracy",
-  na.action = na.omit,
-)
+Master_Split2 <- initial_split(Master_2, prop = 0.75)
+
+Master_Training2 <- training(Master_Split2)
+Master_Testing2 <- testing(Master_Split2)
+```
+
+```{r}
+svm_rec <- 
+  recipe(PriceDirection ~ ., data = Master_2) 
+
+svm_spec <-
+  svm_rbf(cost = tune(), rbf_sigma = tune()) %>%
+  set_mode("classification") %>%
+  set_engine("kernlab")
+```
+
+```{r}
+svm_wflow <- 
+  workflow() %>% 
+  add_model(svm_spec) %>% 
+  add_recipe(svm_rec)
+```
+
+
+```{r}
+# SVM_model <- svm_poly(PriceDirection~., 
+#                       data = Master_Training,
+#                       mode = "classification", 
+#                       engine = "kernlab",
+#                       cost = seq(0.5, 10, length = 40),
+#                       degree = 2,
+#                       scale_factor = 1)
+```
+
+
+```{r}
+# set.seed(456)
+# SVM_model <- train(
+#   as.factor(PriceDirection)~ .+ -PriceDirection,
+#   data = Master_2,
+#   method = "svmPoly",
+#   tuneGrid = expand.grid(degree = 2, scale = 1, C = seq(0.5, 10, length = 40)),
+#   trControl = trainControl(method = "cv", number = 10, selectionFunction = "oneSE", classProbs =  TRUE),
+#   metric = "Accuracy",
+#   na.action = na.omit,
+# )
 ```
 
 ```{r}
@@ -309,6 +335,6 @@ kernlab:: plot(SVM_model$finalModel)
 ```{r}
 predict_data <- na.omit(SVM_model$trainingData)
 classifications <- predict(SVM_model, Master_2, type = "raw")
-SVM_model$resample %>% summarize(Accuracy)
+SVM_model$resample %>% summarize(mean(Accuracy))
 ```
 
