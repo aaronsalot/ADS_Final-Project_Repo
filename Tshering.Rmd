@@ -150,6 +150,20 @@ final_lasso <- lasso_wf %>% finalize_workflow(best_param) %>%
 final_lasso %>% pull_workflow_fit() %>% tidy()
 ```
 
+```{r}
+library(vip)
+final_lasso %>% 
+      fit(Master_Training) %>%
+      extract_fit_parsnip() %>%
+      vi(lamda = lowest_rmse$penalty) %>%
+      mutate(Importance = abs(Importance),
+             Variable = fct_reorder(Variable, Importance)) %>%
+     ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+     geom_col() + 
+     scale_x_continuous(expand = c(0,0)) +
+     labs(y = NULL)
+```
+
 ### Random Forest - Classification
 
 ```{r}
@@ -188,8 +202,63 @@ rf_tune %>% collect_metrics()
 
 ```
 
+### Decision tree 
 
 ```{r}
+#decision trees
+set.seed(456)
 
+tree_model <-
+  decision_tree() %>%
+  set_mode("classification") %>%
+  set_engine("rpart")
+
+tree_workflow <-
+  workflow() %>%
+  add_recipe(rf_recipe) %>%  
+  add_model(tree_model)
+
+tree_fit <-
+  tree_workflow %>%
+  fit_resamples(btc_cv,
+                control = control_stack_resamples()
+  )
+
+collect_metrics(tree_fit)
+```
+### Stacking 
+
+```{r}
+lasso_tune %>%
+  collect_metrics()
+```
+
+```{r}
+rf_tune %>%
+  collect_metrics()
+```
+
+```{r}
+tree_fit %>%
+  collect_metrics()
+```
+
+```{r}
+Models_stack <-
+  stacks() %>%
+  add_candidates(lasso_tune) %>%
+  add_candidates(rf_tune) %>%
+  add_candidates(tree_fit)
+```
+
+```{r}
+Models_blend <-
+  Models_stack %>%
+  blend_predictions()
+Models_blend
+```
+```{r}
+Model_final_stack <- Models_blend %>%
+  fit_members() 
 ```
 
