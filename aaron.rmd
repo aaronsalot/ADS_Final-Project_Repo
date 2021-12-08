@@ -256,11 +256,16 @@ p70
 
 ```{r}
 library(scales)
+
+ggplot(Master, aes(x=`Date_num`,y=`Price`, col = `SOPR`)) + geom_line() + theme_dark()
+
 ggplot(Master, aes(x=`Date_num`,y=Price)) + 
   geom_line(col = "blue") + ggplot(Master, aes(x=`Date_num`,y=SOPR)) + 
   geom_line(col = "blue")
-ggplot(Master, aes(x=`Date_num`,y=`Gas Limit Block, mean`, color = `PriceDirection`)) + 
-  geom_line()
+
+
+ggplot(Master, aes(x=`Date_num`,y=`Gas Limit Block, mean`, color = `SOPR`)) + 
+  geom_line() + theme_dark()
 ggplot(Master, aes(x=`Date_num`,y=`Adjusted_Dormancy_Flow`, color = SOPR)) + 
   geom_line()
 ggplot(Master, aes(x=`Date_num`,y=`Addresses balance greater than $10M`, color = `PriceDirection`)) + 
@@ -330,5 +335,13 @@ ggplot(Master, aes(x=`Addresses balance greater than $10M`,y=`PriceDirection`)) 
   pivot_longer(cols = everything(),names_to = "variable", values_to = "value") +
   scale_fill_gradient(low="red",high="yellow") + theme_clean() + theme_economist() +
                       theme(legend.position = "none")
+```
+
+
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `SOPR`, `Adjusted_Dormancy_Flow`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_economist()
 ```
 
