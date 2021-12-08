@@ -23,6 +23,7 @@ library(xgboost)
 library(leaps)
 library(caret)
 library(ggplot2)
+library(ggthemes)
 theme_set(theme_minimal()) # Lisa's favorite theme
 ```
 
@@ -258,11 +259,11 @@ library(scales)
 ggplot(Master, aes(x=`Date_num`,y=Price)) + 
   geom_line(col = "blue") + ggplot(Master, aes(x=`Date_num`,y=SOPR)) + 
   geom_line(col = "blue")
-ggplot(Master, aes(x=`Date_num`,y=`Gas Limit Block, mean`, color = SOPR)) + 
+ggplot(Master, aes(x=`Date_num`,y=`Gas Limit Block, mean`, color = `PriceDirection`)) + 
   geom_line()
 ggplot(Master, aes(x=`Date_num`,y=`Adjusted_Dormancy_Flow`, color = SOPR)) + 
   geom_line()
-ggplot(Master, aes(x=`Date_num`,y=`Addresses balance greater than $10M`, color = SOPR)) + 
+ggplot(Master, aes(x=`Date_num`,y=`Addresses balance greater than $10M`, color = `PriceDirection`)) + 
   geom_line()
 ggplot(Master, aes(x=`Date_num`,y=`Supply, held by top 100 addresses`, color = SOPR)) + 
   geom_line()
@@ -272,6 +273,12 @@ ggplot(Master, aes(x=`Date_num`,y=`Coin_Years_Destroyed`, color = SOPR)) +
   geom_line()
 ggplot(Master, aes(x=`Date_num`,y=`NVT, adjusted`, color = SOPR)) + 
   geom_line()
+
+plot(Master$PriceDirection,Master$SOPR)
+
+plot(Master$PriceDirection,Master$`NVT, adjusted`)
+plot(Master$Date_num,Master$Coin_Years_Destroyed, col = "red") +
+plot(Master$Date_num,Master$Price, col = "blue")
 ```
 
 ```{r}
@@ -315,11 +322,13 @@ ggplot(Master, aes(x=`SOPR`,y=`PriceDirection`)) +
 
 ```{r}
 ggplot(Master, aes(x=`Adjusted_Dormancy_Flow`,y=`PriceDirection`)) + 
-  geom_boxplot() +
+  geom_boxplot()
   
 
-ggplot(Master, aes(x=`Addresses balance greater than $10M`,y=`PriceDirection`)) + 
+ggplot(Master, aes(x=`Addresses balance greater than $10M`,y=`PriceDirection`)) +
   geom_col() + 
-  scale_fill_gradient(low="red",high="yellow")
+  pivot_longer(cols = everything(),names_to = "variable", values_to = "value") +
+  scale_fill_gradient(low="red",high="yellow") + theme_clean() + theme_economist() +
+                      theme(legend.position = "none")
 ```
 

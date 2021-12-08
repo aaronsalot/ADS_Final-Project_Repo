@@ -3,10 +3,10 @@ title: "Visualizations"
 output: html_document
 ---
 
-<br> Exploratory Data Visualization
+#Exploratory Data Visualization
 
 
-<br> We started with 162 variables, however, as we remove certain repetitive variables, we brought our database collection down to 88 variables. We plotted the remaining 88 variables (attached in our behind the scenes RMD), and removed certain variables that either did not have any corelation to the output or that another variable with an overlapping effect. Below are plots of select variables that either do not have a graphical corelation with price, or that are repeated and thus enabling an overfitted model. 
+<br> We started with 162 variables, however, as we remove certain repetitive variables, we brought our database collection down to 88 variables. We plotted 68 of the remaining 88 variables (attached in our behind the scenes RMD), and removed certain variables that either did not have any corelation to the output or that another variable with an overlapping effect. Below are plots of select variables that either do not have a graphical corelation with price, or that are repeated and thus enabling an overfit model. 
 
 ```{r}
 ggplot(Master.v8,
@@ -53,7 +53,7 @@ ggplot(Master.v8,
    scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, 90D Active"))
 ```
 
-<br> Consequently, the graphical EDA showed certain variables that demontrated a strong corelation to the output. Some of these variables can be seen below. 
+<br> Consequently, the graphical explandatory data analysis showed certain variables that demontrated a strong corelation to the output. Some of these variables can be seen below. 
 
 ```{r}
 ggplot(Master.v8,
@@ -82,25 +82,47 @@ ggplot(Master.v8,
            y = `Price`)) + 
          geom_point() + 
          geom_smooth(method = lm, se = FALSE) +
-   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Adjusted Dormancy Flow"))
-
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Adjusted Dormancy Flow")) + theme_fivethirtyeight()
 
 ```
 
 
-<br> Model Related Visualizations
+#Model Related Visualizations
+
+After computing the 4 different models, we graphed to assess what variables each model determined would largely impact the price direction of Bitcoin. Below are two variable importance plots of the final lasso and decision tree models - as you can see they have very similar variables. 
+
+
+
+```{r}
+final_lasso %>% 
+      fit(Master_Training) %>%
+      extract_fit_parsnip() %>%
+      vi(lamda = lowest_rmse$penalty) %>%
+      mutate(Importance = abs(Importance),
+             Variable = fct_reorder(Variable, Importance)) %>%
+     ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+     geom_col() + 
+     scale_x_continuous(expand = c(0,0)) +
+     labs(y = NULL)
+```
+
+```{r}
+tree_final %>% 
+      fit(Master_Training) %>%
+      extract_fit_parsnip() %>%
+      vi(accuracy = best_param_tree) %>%
+      mutate(Importance = abs(Importance),
+             Variable = fct_reorder(Variable, Importance)) %>%
+     ggplot(aes(x = Importance, y = Variable, fill = Sign)) +
+     geom_col() + 
+     scale_x_continuous(expand = c(0,0)) +
+     labs(y = NULL)
+```
+
 
 
 
 <br> Conclusive Visualizations
-
-
-
-
-
-
-
-
 
 
 
