@@ -345,3 +345,40 @@ Master %>%
   ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_economist()
 ```
 
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `Gas Limit Block, mean`, `Addresses balance greater than $10M`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_wsj()
+
+
+```
+
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `Supply, held by top 100 addresses`, `Supply, Total Active`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_economist()
+```
+
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `Coin_Years_Destroyed`, `NVT, adjusted`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_economist()
+```
+
+```{r}
+Master %>% 
+    select(`Price`, `Date_num`,`Miner Rev, Total ($)`, `Total Fees, USD`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_economist()
+```
+
+```{r}
+Master %>% 
+    select(`Price`, `Date_num`,`Flow out exchanges, USD`, `Mean Fee per Transaction, USD`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_economist()
+```
+
