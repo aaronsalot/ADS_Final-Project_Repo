@@ -291,8 +291,35 @@ ggplot(Master, aes(`Adjusted_Dormancy_Flow`)) +
 
 ggplot(Master, aes(`Addresses balance greater than $10M`)) +
   geom_density()
+```
 
+```{r}
+ggplot(Master, aes(x=`SOPR`,y=`PriceDirection`)) + 
+  geom_jitter()
+```
 
+```{r}
+ggplot(Master, aes(x=`Adjusted_Dormancy_Flow`,y=`PriceDirection`)) + 
+  geom_col()
+```
+```{r}
+ggplot(Master, aes(x=`Addresses balance greater than $10M`,y=`PriceDirection`)) + 
+  geom_jitter()
+ggplot(Master, aes(x=`Addresses balance greater than $10M`,y=`PriceDirection`)) + 
+  geom_col()
+```
+```{r}
+ggplot(Master, aes(x=`SOPR`,y=`PriceDirection`)) + 
+  geom_col()
+```
 
+```{r}
+ggplot(Master, aes(x=`Adjusted_Dormancy_Flow`,y=`PriceDirection`)) + 
+  geom_boxplot() +
+  
+
+ggplot(Master, aes(x=`Addresses balance greater than $10M`,y=`PriceDirection`)) + 
+  geom_col() + 
+  scale_fill_gradient(low="red",high="yellow")
 ```
 

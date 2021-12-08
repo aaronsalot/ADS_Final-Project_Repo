@@ -6,16 +6,93 @@ output: html_document
 <br> Exploratory Data Visualization
 
 
+<br> We started with 162 variables, however, as we remove certain repetitive variables, we brought our database collection down to 88 variables. We plotted the remaining 88 variables (attached in our behind the scenes RMD), and removed certain variables that either did not have any corelation to the output or that another variable with an overlapping effect. Below are plots of select variables that either do not have a graphical corelation with price, or that are repeated and thus enabling an overfitted model. 
+
+```{r}
+ggplot(Master.v8,
+       aes(x = `Hash Rate, mean`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Hashate Rate"))
+
+ggplot(Master.v8,
+       aes(x = `Issuance, in USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Issuance (USD)"))
+
+ggplot(Master.v8,
+       aes(x = `Issuance Total, in USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Total Issuance"))
 
 
+ggplot(Master.v8,
+       aes(x = `Supply, 30D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, 30D Active"))
 
-<br> Model Relation Visualizations
+ggplot(Master.v8,
+       aes(x = `Supply, 7D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, 7D Active"))
+
+ggplot(Master.v8,
+       aes(x = `Supply, 90D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, 90D Active"))
+```
+
+<br> Consequently, the graphical EDA showed certain variables that demontrated a strong corelation to the output. Some of these variables can be seen below. 
+
+```{r}
+ggplot(Master.v8,
+       aes(x = `Gas Limit Block, mean`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~.*1000, name = "Mean Gas Limit Block"))
+
+ggplot(Master.v8,
+       aes(x = `NVT, adjusted`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "NVT Adjusted"))
+
+ggplot(Master.v8,
+       aes(x = `Supply, in addresses (<$10M)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Supply, in addresses (<$10M)"))
+
+ggplot(Master.v8,
+       aes(x = `Adjusted_Dormancy_Flow`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   scale_y_continuous("Price", sec.axis = sec_axis(~., name = "Adjusted Dormancy Flow"))
+
+
+```
+
+
+<br> Model Related Visualizations
 
 
 
 <br> Conclusive Visualizations
-
-
 
 
 
