@@ -255,12 +255,9 @@ p70
 
 ```{r}
 library(scales)
-ggplot(Master, aes(x=`Date_num`,y=Price, color = SOPR)) + 
-  geom_line()
-
-ggplot(Master, aes(x=`Date_num`,y=SOPR, color = SOPR)) + 
-  geom_line()
-
+ggplot(Master, aes(x=`Date_num`,y=Price)) + 
+  geom_line(col = "blue") + ggplot(Master, aes(x=`Date_num`,y=SOPR)) + 
+  geom_line(col = "blue")
 ggplot(Master, aes(x=`Date_num`,y=`Gas Limit Block, mean`, color = SOPR)) + 
   geom_line()
 ggplot(Master, aes(x=`Date_num`,y=`Adjusted_Dormancy_Flow`, color = SOPR)) + 
@@ -275,5 +272,27 @@ ggplot(Master, aes(x=`Date_num`,y=`Coin_Years_Destroyed`, color = SOPR)) +
   geom_line()
 ggplot(Master, aes(x=`Date_num`,y=`NVT, adjusted`, color = SOPR)) + 
   geom_line()
+```
+
+```{r}
+ggplot(Master, aes(`Price`)) +
+  geom_density()
+
+ggplot(Master, aes(`SOPR`)) +
+  geom_density()
+ggplot(Master, aes(`SOPR`)) +
+  geom_histogram()
+
+ggplot(Master, aes(`Gas Limit Block, mean`)) +
+  geom_density()
+
+ggplot(Master, aes(`Adjusted_Dormancy_Flow`)) +
+  geom_density()
+
+ggplot(Master, aes(`Addresses balance greater than $10M`)) +
+  geom_density()
+
+
+
 ```
 
