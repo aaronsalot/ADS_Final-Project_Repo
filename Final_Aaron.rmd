@@ -3,6 +3,34 @@ title: "Final_Aaron.rmd"
 output: html_document
 ---
 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(readxl)
+library(caret)
+library(tidyverse)         # for graphing and data cleaning
+library(tidymodels)        # for modeling
+library(themis)            # for step functions for unbalanced data
+library(doParallel)        # for parallel processing
+library(stacks)            # for stacking models
+library(naniar)            # for examining missing values (NAs)
+library(lubridate)         # for date manipulation
+library(moderndive)        # for King County housing data
+library(vip)               # for variable importance plots
+library(patchwork)         # for combining plots nicely
+library(xgboost)
+library(rpart)
+library(h2o)
+library(ggthemes)
+theme_set(theme_minimal()) # Lisa's favorite theme
+```
+
+
 ### Introduction
 
 <br> Bitcoin, and other cryptocurrencies, have been present for over a decade, and have become increasingly prevalent in the global economic system. Bitcoin, the first and most widely used cryptocurrency, is used as a store of value, tradable asset, and a form of currency. This analysis aims to take advantage of the open-source blockchain network behind Bitcoin, and our goal is to understand the various factors that influence the price movement of Bitcoin. 
