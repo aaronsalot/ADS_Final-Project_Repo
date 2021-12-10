@@ -1,0 +1,206 @@
+---
+title: "Final_Aaron.rmd"
+output: html_document
+---
+
+### Introduction
+
+<br> Bitcoin, and other cryptocurrencies, have been present for over a decade, and have become increasingly prevalent in the global economic system. Bitcoin, the first and most widely used cryptocurrency, is used as a store of value, tradable asset, and a form of currency. This analysis aims to take advantage of the open-source blockchain network behind Bitcoin, and our goal is to understand the various factors that influence the price movement of Bitcoin. 
+
+
+<br> Bitcoin popularized blockchain technology, and Satoshi Nakamoto used it to solve the Byzanztine's General Problem and the double-spending problem without the need of a central authority. It is also the fastest growing asset class to have reached close to $2-3 trillion in market capitalization in over a decade. Given the recent technological adoption as seen with Tesla, Microstrategy & El Salvador's government, we are particularly interested to examine the price movement of Bitcoin by looking at certain variables that are publically accessible through Bitcoin's public ledger.
+
+
+### Data Sources
+
+<br> We used three different data sources: CoinMetrics, Glassnodes & FRED. We collected an overall of 162 variables with over 4000 observations; however, after basic explanatory analysis and cleaning, we ended up with 88 variables and 2,100 observations. CoinMetrics was the largest bulk of our data, where we used their public API to extract daily data from 2010 to present (November, 2021). We also secured a Glassnodes membership that gave access to daily changes in select variables not present in the CoinMetrics API. Taking from the previous literature review, we also decided to incorporate certain variables that have been examined in previous papers - CPI, Gold Price, Nasdaq & Bitcoin Google Search trends. 
+
+### Pre-Processing
+
+<br> Step 1: We started with 11 years of data with 4000+ observations, and decided to cut our dataset to the most recent 5-years due to data-discrepancy and since Bitcoin was in its nascent stages earlier. 
+
+```{r}
+ADS_Project_11_29_2021_v8 <- read_excel("ADS_Project - 11.29.2021.v8.xlsx")
+```
+
+
+<br> Step 2: We filtered through the variables and removed repetitive ones. For example, certain variables were displayed in USD and native units - we removed variables in native units to ensure consistency and standardization throughout. We also removed that overlap - `NVT, adjusted, 90d MA` & `NVT, free float, 90d MA` are examples of two that we removed to prevent overfitting. 
+
+```{r}
+Master <- ADS_Project_11_29_2021_v8 %>%
+select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Block Size (mean, in bytes)`, `Block Weight, (mean`, `Capitalization of current supply, MVRV`, `Capitalization of free float, MVRV`, `Difficulty, Last Block`, `Difficulty, Mean Block`, `Mean Transaction Fee per Byte of all blocks, native units`, `Mean Transaction Fee per Byte, native units`, `Median Transaction Fee, native units`, `Median Fee per Transacation, USD`, `Addresses balance greater than 0.001 native units`, `Addresses balance greater than 0.01 native units`, `Addresses balance greater than 0.1 native units`,`Addresses balance greater than 100 native units`, `Addresses balance greater than 100K native units`, `Addresses balance greater than 10 native units`, `Addresses balance greater than 10K native units`, `Addresses balance greater than 1 native units`, `Addresses balance greater than 1K native units`, `Addresses balance greater than 1M native units`, `Addresses balance greater than 1in100K`, `Addresses balance greater than 1in100M`, `Addresses balance greater than 1in10B`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10M`, `Addresses balance greater than 1in1B`, `Addresses balance greater than 1in1K`, `Addressesbalance greater than 1in1M`, `Total Fees, native units`, `Flow to exchanges, native units`, `Flow out exchanges, native units`, `Gas Limit Block`, `Gas Limit, transaction`, `Gas Used, transaction`, `Hash Rate Mean, 30d`, `Issuance, native units`, `Issuance, percent annualized`, `Issuance,  percent daily`, `Issuance Total, native units`,`NVT, adjusted, 90d MA`, `NVT, adjusted, free float,  90d MA`, `ROI, 1y (%)`, `Revenue, per hash unit (Native Currency)`, `Revenue Daily, per hash unit/second (Native Currency)`, `Miner Rev (Native Currency)`, `Supply, 10y Active`, `Supply, 5yr Active`, `Supply, 4yr Active`, `Supply, 3yr Active`, `Supply, 1yr Active Trailing (%)`, `Supply, in addresses (<0.001, native currency)`, `Supply, in addresses (<0.01M, native currency)`, `Supply, in addresses (<0.1, native currency)`, `Supply, in addresses (<1, native currency)`, `Supply, in addresses (<10, native currency)`, `Supply, in addresses (<100, native currency)`, `Supply, in addresses (<100K, native currency)`, `Supply, in addresses (<10K, native currency)`, `Supply, in addresses (<1K, native currency)`, `Supply, in addresses (<1M, native currency)`, `Supply, Miner address with 1 mining entity (native currency)`, `Supply, All Miners (native currency)`, `Transactions, adjusted transfer value (native currency)`, `Transactions, mean transfer value (native currency)`, `Transactions, median transfer value (native currency)`, `Transactions, mean transfer value ($)`, `Transactions, median transfer value (native currency)`, `Velocity, 1yr current supply`, `Volatility, 180d daily returns`, `Volatility, 30d daily returns`, `Price, BTC`, `Price, ($)`, `Transactions, median transfer value ($)`))
+```
+
+
+
+<br> Step 3: After the first two steps, we arrived at 88 variables and 2145 observations. We then plotted over 60 graphs (all attached in the behind-the-scenes) and removed certain variables that either did not have any correlation to the output or where other variables had a visually overlapping effect. Below are plots of select variables that we removed during this process. 
+
+```{r}
+ggplot(Master,
+       aes(x = `Hash Rate, mean`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) + theme_economist()
+
+ggplot(Master,
+       aes(x = `Issuance, in USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) + theme_economist()
+
+ggplot(Master,
+       aes(x = `Issuance Total, in USD`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) + theme_economist()
+
+
+ggplot(Master,
+       aes(x = `Supply, 30D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) + theme_economist()
+
+ggplot(Master,
+       aes(x = `Supply, 7D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) + theme_economist()
+
+ggplot(Master,
+       aes(x = `Supply, 90D Active`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE)+ theme_economist()
+```
+
+
+<br> Consequently, the graphical explandatory data analysis showed certain variables that demontrated a strong corelation to the output. Some of these variables can be seen below. 
+
+```{r}
+ggplot(Master,
+       aes(x = `Gas Limit Block, mean`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) + theme_economist()
+
+ggplot(Master,
+       aes(x = `NVT, adjusted`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   theme_economist()
+
+ggplot(Master,
+       aes(x = `Supply, in addresses (<$10M)`,
+           y = `Price`)) + 
+         geom_point() + 
+         geom_smooth(method = lm, se = FALSE) +
+   theme_economist()
+```
+
+
+<br> The code below shows the variables we removed after plotting most of the graphs as seen above. This further dropped our variable count from 88 variables to 27. 
+
+```{r}
+Master <- Master %>% select(-c(`Gas limit Mean, transaction`, `Hash Rate, mean`, `Issuance, in USD`, `Issuance Total, in USD`, `ROI, 30D (%)`, `Revenue Daily, per hash unit/second (USD)`, `Revenue, per hash unit ($)`, `Supply Equality Ratio`, `Supply, 180D Active`, `Supply, 1yr Active`, `Supply, 2y Active`, `Supply, 1yr Active`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`,`Transactions, count (per second)`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `Balance_Exchanges_(%)`, `Total_Exchange_Inflow_Volume`, `Supply, 30D Active`, `Supply, 7D Active`, `Supply, 90D Active`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in10M)`, `Supply, address balance (<1in10B)`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in1B)`, `Supply, address balance (<1in1K)`, `Supply, address balance (<1in1M)`, `Supply, in addresses (<$1)`, `Supply, in addresses (<$10)`, `Supply, in addresses (<$100)`, `Supply, in addresses (<$100K)`, `Supply, in addresses (<$10K)`, `Supply, in addresses (<$10M)`, `Supply, in addresses (<$1K)`, `Supply, held by top 1% addresses`, `Supply, 10yr expected supply`, `Supply, free float`, `Supply, All Miners ($)`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `CPI_(%)`))
+```
+
+```{r}
+Master <- Master %>% select(-c(`All Addresses balance`, `Addresses balance greater than $100`, `Addresses balance greater than $10`, `Addresses balance greater than $1`, `Capitalization of active native units supply, in USD`, `Capitalization of free float, in USD`, `Capitalization realized, USD`, `NVT, adjusted, free float`, `Miner Rev ($)`, `Supply, current`, `Flow transfers exchanges`, `Supply, address balance (<1in100M)`, `Supply, in addresses (<$1M)`, `Transactions, transfer count`, `NUPL`, `rHODL`, `Addresses Active Count`,`Addresses balance greater than $10K`, `Addresses balance greater than $100K`, `Addresses balance greater than $1K`, `Addresses balance greater than $1M`, `Block, weight, total`))
+```
+
+
+<br> Step 4: Here, we created variables in order to facilitate our models and analysis. In particular, we created the following variables: Weekly_avg, Daily_avg, lag7day, lag1day & PriceDirection. These were computed based on the existing data points from Step 3, and we use PriceDirection going forward, since our aim is to examine the effects of other variables on the direction of Bitcoin’s price. 
+
+
+```{r}
+ Master <- Master %>%
+           mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
+           mutate(lag1day = lag(Price, 1, order_by = Date),
+                  lag7day = lag(Price, 7, order_by = Date)) %>%
+           replace_na(list(lag1day = 0, lag7day = 0)) %>% 
+           mutate(Daily_avg = (Price + lag1day)/2,
+                  Weekly_avg = (Price + lag7day)/7) %>%
+           select(-c(`CPI`, `BTC(%)`, `NDQ(%)`, `Gold(%)`, BTC_Searches, `BTCS(%)`))
+```
+
+
+### Model Building
+
+
+### Data Visualization
+
+
+
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `SOPR`, `Adjusted_Dormancy_Flow`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_wsj()
+```
+
+<br> This plot shows the dormancy flows of dormant coins throughout a bitcoin cycle. For example, at the peak of the cycle in 2018 (Date_num < 17500), most of the the dormant coins were being trasacted and tranferred across changes. It comes to show how in the current cycle the dormant coins have not reached that level of transactions and movement. The SOPR, on the other hands, helps understand short-term price movement. During large dumps, like March 2020 (Date_num < 18500), we see how the SOPR drops significantly around 0.9, while it reaches closer to 1.10 at bull market local peaks. 
+
+
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `Supply, held by top 100 addresses`, `Supply, Total Active`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_wsj()
+```
+
+<br> One of the interesting variables to examine is Supply, held by the top 100 addresses. These are the largest bitcoin holders, and their holdings often dictate the price direction of Bitcoin - this is primarily due to the fact that they have experienced multiple cycles, can anticipate how the current cycle may play out, and potentially because they hold greater information about upcoming price catalysts. Them increasing their holdings significantly during the March 2020 dump could be a potential indicator to frontrun a large increase in the price of bitcoin. 
+
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `Coin_Years_Destroyed`, `NVT, adjusted`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_wsj()
+```
+
+<br> The Network Value to Transaction helps understand the relationship between transfer volume and the market cap of Bitcoin. In order words, a higher NVT indicates that the valuation of the Bitcoin network is greater than the transaction volume (a more intrinsic value indicator). The blow-off top in 2018 could be anticipated by the sudden increase in NVT, which would indicate a bubble-like behavior in terms of Bitcoin's transaction volume vs it's market cap. 
+
+
+
+
+
+<br> Below are additional graphs plotted with the price of Bitcoin over the span of 5 years. 
+
+```{r}
+Master %>% 
+    select(`Price`, `Date_num`,`Miner Rev, Total ($)`, `Total Fees, USD`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_wsj()
+```
+
+
+```{r}
+Master %>% 
+  select(`Price`, `Date_num`, `Gas Limit Block, mean`, `Addresses balance greater than $10M`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_wsj()
+```
+
+
+
+
+```{r}
+Master %>% 
+    select(`Price`, `Date_num`,`Flow out exchanges, USD`, `Mean Fee per Transaction, USD`) %>%
+  pivot_longer(cols=-`Date_num`, names_to = "variable", values_to = "values") %>% 
+  ggplot(aes(`Date_num`, `values`)) + geom_line() + facet_wrap(vars(`variable`), ncol = 1, scales = "free_y") + theme_wsj()
+```
+
+
+
+
+### Data Dictionary
+
+<br> Spent Output Profit Ratio (SOPR): Price Paid / Price Sold
+<br> Gas Limit Block, Mean: Sum gas limit of all block from that interval
+<br> Adjusted Dormany Flow: Market Cap/Annualized Dormancy Value
+<br> Coin Years Active: Coins Transacted / # of Days Since Last Transacted
+<br> NVT, Adjust: Market Cap/Transfer Volume
+
