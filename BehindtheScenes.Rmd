@@ -11,7 +11,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-#knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
@@ -66,7 +66,7 @@ Master <- ADS_Project_11_29_2021_v8 %>%
 select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Block Size (mean, in bytes)`, `Block Weight, (mean`, `Capitalization of current supply, MVRV`, `Capitalization of free float, MVRV`, `Difficulty, Last Block`, `Difficulty, Mean Block`, `Mean Transaction Fee per Byte of all blocks, native units`, `Mean Transaction Fee per Byte, native units`, `Median Transaction Fee, native units`, `Median Fee per Transacation, USD`, `Addresses balance greater than 0.001 native units`, `Addresses balance greater than 0.01 native units`, `Addresses balance greater than 0.1 native units`,`Addresses balance greater than 100 native units`, `Addresses balance greater than 100K native units`, `Addresses balance greater than 10 native units`, `Addresses balance greater than 10K native units`, `Addresses balance greater than 1 native units`, `Addresses balance greater than 1K native units`, `Addresses balance greater than 1M native units`, `Addresses balance greater than 1in100K`, `Addresses balance greater than 1in100M`, `Addresses balance greater than 1in10B`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10M`, `Addresses balance greater than 1in1B`, `Addresses balance greater than 1in1K`, `Addressesbalance greater than 1in1M`, `Total Fees, native units`, `Flow to exchanges, native units`, `Flow out exchanges, native units`, `Gas Limit Block`, `Gas Limit, transaction`, `Gas Used, transaction`, `Hash Rate Mean, 30d`, `Issuance, native units`, `Issuance, percent annualized`, `Issuance,  percent daily`, `Issuance Total, native units`,`NVT, adjusted, 90d MA`, `NVT, adjusted, free float,  90d MA`, `ROI, 1y (%)`, `Revenue, per hash unit (Native Currency)`, `Revenue Daily, per hash unit/second (Native Currency)`, `Miner Rev (Native Currency)`, `Supply, 10y Active`, `Supply, 5yr Active`, `Supply, 4yr Active`, `Supply, 3yr Active`, `Supply, 1yr Active Trailing (%)`, `Supply, in addresses (<0.001, native currency)`, `Supply, in addresses (<0.01M, native currency)`, `Supply, in addresses (<0.1, native currency)`, `Supply, in addresses (<1, native currency)`, `Supply, in addresses (<10, native currency)`, `Supply, in addresses (<100, native currency)`, `Supply, in addresses (<100K, native currency)`, `Supply, in addresses (<10K, native currency)`, `Supply, in addresses (<1K, native currency)`, `Supply, in addresses (<1M, native currency)`, `Supply, Miner address with 1 mining entity (native currency)`, `Supply, All Miners (native currency)`, `Transactions, adjusted transfer value (native currency)`, `Transactions, mean transfer value (native currency)`, `Transactions, median transfer value (native currency)`, `Transactions, mean transfer value ($)`, `Transactions, median transfer value (native currency)`, `Velocity, 1yr current supply`, `Volatility, 180d daily returns`, `Volatility, 30d daily returns`, `Price, BTC`, `Price, ($)`, `Transactions, median transfer value ($)`))
 ```
 
-We arrived at 88 variables and 2145 observations. We then plotted over 60 graphs (all attached in the behind-the-scenes) and removed certain variables that either did not have any correlation to the output or where other variables had a visually overlapping effect. Below are plots of select variables that we removed during this process. 
+We arrived at 88 variables and 2145 observations. We then plotted over 60 graphs and removed certain variables that either did not have any correlation to the output or where other variables had a visually overlapping effect. Below are plots of select variables that we removed during this process. 
 
 ```{r}
 ggplot(Master,
@@ -143,7 +143,7 @@ Master <- Master %>% select(-c(`All Addresses balance`, `Addresses balance great
 ```
 
 
-In the section below, we carry out further pre-processing. We start by converting the Date into numeric format from character, so this will not cause problems when building the recipes for the models moving forward. We also introduce a few new variables which represent the lagged characteristics of the Prices such as *lag1day* which essentially enables each observation to obtain more than 1 price variable; hence the *Price* variable will represent that specific days price and *lag1day* will represent the previous day's price.
+In the section below, we carry out further pre-processing. We start by converting the Date into numeric format from character, so this will not cause problems when building the recipes for the models moving forward. We also introduce a few new variables which represent the lagged characteristics of the Prices such as `lag1day` which essentially enables each observation to obtain more than 1 price variable; hence the `Price` variable will represent that specific days price and `lag1day` will represent the previous day's price.
 
 ```{r}
  Master <- Master %>%
@@ -170,9 +170,9 @@ We also carry out further exploratory analysis with Support Vector Machines to s
 
 #### Lasso - Binary Classification 
 
-Initially, we wanted to use a lasso predictive regression which would model a quantitative *Y* variable (*Price*). Upon preliminary model building and testing, we observed that the model performed very poorly with this approach. This was likely due to Bitcoin having extremely volatile prices creating increased variation and noise which made modelling it accurately difficult. Hence, we moved forward with a binary lasso classification.
+Initially, we wanted to use a lasso predictive regression which would model a quantitative *Y* variable (`Price`). Upon preliminary model building and testing, we observed that the model performed very poorly with this approach. This was likely due to Bitcoin having extremely volatile prices creating increased variation and noise which made modelling it accurately difficult. Hence, we moved forward with a binary lasso classification.
 
-In building the Lasso, we created a new variable called *PriceDirection* which would allow us to look at price actions in a binary structure with the help of the lagged variables. We define the main dependent variable by passing on a logical condition whereby if *Price* is greater than *lag1day*, then the condition is true and represents a price increase (1). If the condition fails, it will translate to a price decrease (0). This is shown below. 
+In building the Lasso, we created a new variable called `PriceDirection` which would allow us to look at price actions in a binary structure with the help of the lagged variables. We define the main dependent variable by passing on a logical condition whereby if `Price` is greater than `lag1day`, then the condition is true and represents a price increase (1). If the condition fails, it will translate to a price decrease (0). This is shown below. 
 
 ```{r}
 Master <- Master %>% mutate(Date = ymd(Date)) %>% 
@@ -194,7 +194,7 @@ Master_Testing <- testing(Master_Split)
 ```
 
 
-In the next step, we prepare the Lasso model recipe. We remove *Date* since the recipe building can only process numeric data structures. We also exclude *Network Distribution Factor*, *Capitalization of Current Supply, in USD*, and *Supply, held by top 10% addresses* as these variables demonstrated issues of Endogeneity. We also exclude other variables which are not used for this section.
+In the next step, we prepare the Lasso model recipe. We remove `Date` since the recipe building can only process numeric data structures. We also exclude `Network Distribution Factor`, `Capitalization of Current Supply, in USD`, and `Supply, held by top 10% addresses` as these variables demonstrated issues of Endogeneity. We also exclude other variables which are not used for this section.
 
 ```{r}
 lasso_recipe <- recipe(PriceDirection ~ .,
@@ -283,7 +283,7 @@ The Lasso classification model selects the variables based in the magnitude of t
 
 #### Random Forest - Classification
 
-The next model we use is a Random Forest. Similar to the lasso model, we take most of the same concepts and ideas in building the model with *PriceDirection* being the main dependent variable. We adjust for the removal of the variables we excluded in the lasso for the same reasons as above. 
+The next model we use is a Random Forest. Similar to the lasso model, we take most of the same concepts and ideas in building the model with `PriceDirection` being the main dependent variable. We adjust for the removal of the variables we excluded in the lasso for the same reasons as above. 
 
 We build our random forest model using 10 trees with penalty grid of level 3 to tune the forest and a resampling CV of 10 folds. The model returns the the mode of the predictions for the 10 trees. 
 
