@@ -1,0 +1,362 @@
+---
+title: "Applying Machine Learning to Bitcoin Price Prediction"
+author: "Tshering Wangchuk & Aaron Salot"
+date: 12/08/2021
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+    code_download: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, echo=FALSE, warning=FALSE, include=FALSE}
+library(dplyr)
+library(readxl)
+library(caret)
+library(tidyverse)         # for graphing and data cleaning
+library(tidymodels)        # for modeling
+library(themis)            # for step functions for unbalanced data
+library(doParallel)        # for parallel processing
+library(stacks)            # for stacking models
+library(naniar)            # for examining missing values (NAs)
+library(lubridate)         # for date manipulation
+library(moderndive)        # for King County housing data
+library(vip)               # for variable importance plots
+library(patchwork)         # for combining plots nicely
+library(DALEX)
+library(DALEXtra)
+library(rpart)
+library(ggthemes)
+theme_set(theme_minimal()) # Lisa's favorite theme
+```
+
+# Introduction
+
+Bitcoin, and other cryptocurrencies, have been present for over a decade, and have become increasingly prevalent in the global economic system. Bitcoin, the first and most widely used cryptocurrency, is used as a store of value, tradable asset, and a form of currency. This analysis aims to take advantage of the open-source blockchain network behind Bitcoin, and our goal is to understand the various factors that influence the price movement of Bitcoin. 
+
+
+Bitcoin popularized blockchain technology, and Satoshi Nakamoto used it to solve the Byzanztine's General Problem and the double-spending problem without the need of a central authority. It is also the fastest growing asset class to have reached close to $2-3 trillion in market capitalization in over a decade. Given the recent technological adoption as seen with Tesla, Microstrategy & El Salvador's government, we are particularly interested to examine the price movement of Bitcoin by looking at certain variables that are publically accessible through Bitcoin's public ledger.
+
+
+# Data Sources
+
+We used three different data sources: CoinMetrics, Glassnodes & FRED. We collected an overall of 162 variables with over 4000 observations; however, after basic explanatory analysis and cleaning, we ended up with 88 variables and 2,100 observations. CoinMetrics was the largest bulk of our data, where we used their public API to extract daily data from 2010 to present (November, 2021). We also secured a Glassnodes membership that gave access to daily changes in select variables not present in the CoinMetrics API. Taking from the previous literature review, we also decided to incorporate certain variables that have been examined in previous papers - CPI, Gold Price, Nasdaq & Bitcoin Google Search trends. 
+
+# Global Interpretation of ML Models
+
+```{r, echo=FALSE}
+ADS_Project_11_29_2021_v8 <- read_excel("ADS_Project - 11.29.2021.v8.xlsx")
+
+Master <- ADS_Project_11_29_2021_v8 %>%
+select(-c(`Last Calculated EOD metrics (time, in seconds)`, `Block Count`, `Block Size (mean, in bytes)`, `Block Weight, (mean`, `Capitalization of current supply, MVRV`, `Capitalization of free float, MVRV`, `Difficulty, Last Block`, `Difficulty, Mean Block`, `Mean Transaction Fee per Byte of all blocks, native units`, `Mean Transaction Fee per Byte, native units`, `Median Transaction Fee, native units`, `Median Fee per Transacation, USD`, `Addresses balance greater than 0.001 native units`, `Addresses balance greater than 0.01 native units`, `Addresses balance greater than 0.1 native units`,`Addresses balance greater than 100 native units`, `Addresses balance greater than 100K native units`, `Addresses balance greater than 10 native units`, `Addresses balance greater than 10K native units`, `Addresses balance greater than 1 native units`, `Addresses balance greater than 1K native units`, `Addresses balance greater than 1M native units`, `Addresses balance greater than 1in100K`, `Addresses balance greater than 1in100M`, `Addresses balance greater than 1in10B`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10K`, `Addresses balance greater than 1in10M`, `Addresses balance greater than 1in1B`, `Addresses balance greater than 1in1K`, `Addressesbalance greater than 1in1M`, `Total Fees, native units`, `Flow to exchanges, native units`, `Flow out exchanges, native units`, `Gas Limit Block`, `Gas Limit, transaction`, `Gas Used, transaction`, `Hash Rate Mean, 30d`, `Issuance, native units`, `Issuance, percent annualized`, `Issuance,  percent daily`, `Issuance Total, native units`,`NVT, adjusted, 90d MA`, `NVT, adjusted, free float,  90d MA`, `ROI, 1y (%)`, `Revenue, per hash unit (Native Currency)`, `Revenue Daily, per hash unit/second (Native Currency)`, `Miner Rev (Native Currency)`, `Supply, 10y Active`, `Supply, 5yr Active`, `Supply, 4yr Active`, `Supply, 3yr Active`, `Supply, 1yr Active Trailing (%)`, `Supply, in addresses (<0.001, native currency)`, `Supply, in addresses (<0.01M, native currency)`, `Supply, in addresses (<0.1, native currency)`, `Supply, in addresses (<1, native currency)`, `Supply, in addresses (<10, native currency)`, `Supply, in addresses (<100, native currency)`, `Supply, in addresses (<100K, native currency)`, `Supply, in addresses (<10K, native currency)`, `Supply, in addresses (<1K, native currency)`, `Supply, in addresses (<1M, native currency)`, `Supply, Miner address with 1 mining entity (native currency)`, `Supply, All Miners (native currency)`, `Transactions, adjusted transfer value (native currency)`, `Transactions, mean transfer value (native currency)`, `Transactions, median transfer value (native currency)`, `Transactions, mean transfer value ($)`, `Transactions, median transfer value (native currency)`, `Velocity, 1yr current supply`, `Volatility, 180d daily returns`, `Volatility, 30d daily returns`, `Price, BTC`, `Price, ($)`, `Transactions, median transfer value ($)`))
+
+Master <- Master %>% select(-c(`Gas limit Mean, transaction`, `Hash Rate, mean`, `Issuance, in USD`, `Issuance Total, in USD`, `ROI, 30D (%)`, `Revenue Daily, per hash unit/second (USD)`, `Revenue, per hash unit ($)`, `Supply Equality Ratio`, `Supply, 180D Active`, `Supply, 1yr Active`, `Supply, 2y Active`, `Supply, 1yr Active`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`,`Transactions, count (per second)`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `Balance_Exchanges_(%)`, `Total_Exchange_Inflow_Volume`, `Supply, 30D Active`, `Supply, 7D Active`, `Supply, 90D Active`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in10M)`, `Supply, address balance (<1in10B)`, `Supply, address balance (<1in10K)`, `Supply, address balance (<1in1B)`, `Supply, address balance (<1in1K)`, `Supply, address balance (<1in1M)`, `Supply, in addresses (<$1)`, `Supply, in addresses (<$10)`, `Supply, in addresses (<$100)`, `Supply, in addresses (<$100K)`, `Supply, in addresses (<$10K)`, `Supply, in addresses (<$10M)`, `Supply, in addresses (<$1K)`, `Supply, held by top 1% addresses`, `Supply, 10yr expected supply`, `Supply, free float`, `Supply, All Miners ($)`, `Supply, Miner address with 1 mining entity ($)`, `Transactions, count`, `Transactions, adjusted transfer value ($)`, `Coin_Days_Destroyed`, `CPI_(%)`))
+
+Master <- Master %>% select(-c(`All Addresses balance`, `Addresses balance greater than $100`, `Addresses balance greater than $10`, `Addresses balance greater than $1`, `Capitalization of active native units supply, in USD`, `Capitalization of free float, in USD`, `Capitalization realized, USD`, `NVT, adjusted, free float`, `Miner Rev ($)`, `Supply, current`, `Flow transfers exchanges`, `Supply, address balance (<1in100M)`, `Supply, in addresses (<$1M)`, `Transactions, transfer count`, `NUPL`, `rHODL`, `Addresses Active Count`,`Addresses balance greater than $10K`, `Addresses balance greater than $100K`, `Addresses balance greater than $1K`, `Addresses balance greater than $1M`, `Block, weight, total`))
+```
+
+```{r, include=FALSE}
+ Master <- Master %>%
+           mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
+           mutate(lag1day = lag(Price, 1, order_by = Date),
+                  lag7day = lag(Price, 7, order_by = Date)) %>%
+           replace_na(list(lag1day = 0, lag7day = 0)) %>% 
+           mutate(Daily_avg = (Price + lag1day)/2,
+                  Weekly_avg = (Price + lag7day)/7) %>%
+           select(-c(CPI, `BTC(%)`, `NDQ(%)`, `Gold(%)`, BTC_Searches, `BTCS(%)`))
+
+Master <- Master %>% mutate(Date = ymd(Date)) %>% 
+           mutate(Date_num = as.numeric(Date)) %>%
+           mutate(PriceDirection = ifelse(Price > lag1day, yes = 1, no = 0)) %>%
+           mutate(PriceDirection = as.factor(PriceDirection)) 
+        
+```
+
+
+```{r, include=FALSE}
+set.seed(456)
+Master_Split <- initial_split(Master, prop = 0.75)
+
+Master_Training <- training(Master_Split)
+Master_Testing <- testing(Master_Split)
+```
+
+```{r, include=FALSE}
+# Lasso recipe
+
+lasso_recipe <- recipe(PriceDirection ~ .,
+                       data = Master_Training) %>%
+                step_rm(Date, Weekly_avg, Daily_avg, lag7day, lag1day, `Network distribution factor`, `Capitalization of Current Supply, in USD`, `Supply, held by top 10% addresses`) %>%
+                step_mutate_at(all_numeric(), -all_outcomes(), fn= ~ as.numeric(.)) %>%
+                step_dummy(all_nominal(), -all_outcomes()) %>%
+                update_role(Date_num, new_role = "ID") %>%
+                step_zv(all_predictors()) %>%
+                step_normalize(all_predictors(), -all_nominal())
+
+lasso_recipe %>% prep() %>% juice()
+
+# Lasso tune 
+
+lasso_mod <- logistic_reg(mixture = 1) %>%
+             set_engine("glmnet") %>% 
+             set_args(penalty = tune()) %>% 
+             set_mode("classification")
+
+lasso_wf <- workflow() %>%
+            add_recipe(lasso_recipe) %>%
+            add_model(lasso_mod) 
+
+set.seed(494)
+btc_cv <- vfold_cv(Master_Training,
+                   v = 10)
+
+penalty_grid <- grid_regular(penalty(),
+                             levels = 10)
+
+ctrl_grid <- control_stack_resamples()
+
+metric <- metric_set(accuracy)
+
+lasso_tune <- lasso_wf %>%
+              tune_grid(resamples = btc_cv,
+                        grid = penalty_grid,
+                        control = ctrl_grid)
+
+lasso_tune %>% collect_metrics()
+```
+
+```{r, include=FALSE}
+best_param <- lasso_tune %>%
+              select_best(metric = "accuracy")
+best_param
+
+final_lasso <- lasso_wf %>% finalize_workflow(best_param) %>%
+               fit(data = Master_Training)
+```
+
+
+```{r, include=FALSE}
+set.seed(456)
+rf_recipe <- recipe(PriceDirection ~.,
+                    data = Master_Training) %>%
+             step_mutate_at(all_numeric(), fn = ~as.numeric(.)) %>%
+             step_rm(Weekly_avg, Daily_avg, lag7day, lag1day, `Network distribution factor`, `Capitalization of Current Supply, in USD`, `Supply, held by top 10% addresses`) 
+
+rf_recipe %>% prep() %>% juice()
+
+rf_model <- rand_forest(mtry = tune(),
+                        min_n = tune(),
+                        trees = 10) %>%
+            set_mode("classification") %>%
+            set_engine("ranger")
+
+rf_workflow <- workflow() %>%
+               add_recipe(rf_recipe) %>%
+               add_model(rf_model)
+
+rf_penalty_grid <- grid_regular(finalize(mtry(),
+                                Master_Training %>%
+                                select(-PriceDirection)),
+                                min_n(),
+                                levels = 2)
+
+rf_tune <- rf_workflow %>%
+           tune_grid(resamples = btc_cv,
+                     grid = rf_penalty_grid,
+                     control = control_stack_grid())
+
+rf_tune %>% collect_metrics()
+
+
+```
+```{r, warning=FALSE, include=FALSE}
+best_param_rf <- rf_tune %>%
+              select_best(metric = "accuracy")
+best_param_rf
+
+rf_final <- rf_workflow %>% finalize_workflow(best_param_rf) %>%
+              fit(Master_Training)
+```
+```{r, include=FALSE}
+set.seed(456)
+
+tree_model <-
+  decision_tree() %>%
+  set_mode("classification") %>%
+  set_engine("rpart")
+
+tree_workflow <-
+  workflow() %>%
+  add_recipe(rf_recipe) %>%  
+  add_model(tree_model)
+
+tree_fit <-
+  tree_workflow %>%
+  fit_resamples(btc_cv,
+                control = control_stack_resamples()
+  )
+
+collect_metrics(tree_fit)
+```
+
+```{r, include=FALSE}
+best_param_tree <- tree_fit %>%
+              select_best(metric = "accuracy")
+best_param_tree
+
+tree_final <- tree_workflow %>% finalize_workflow(best_param_rf) %>%
+              fit(data = Master_Training)
+```
+
+## Model Performance
+
+```{r}
+lasso_explain <- 
+  explain_tidymodels(
+    model = final_lasso,
+    data = Master_Training %>% select(-PriceDirection),
+    y = Master_Training %>%
+      mutate(Price_num = as.integer(PriceDirection)) %>%
+      pull(Price_num),
+    label = "Lasso"
+  )
+
+rf_explain <- 
+  explain_tidymodels(
+    model = rf_final,
+    data = Master_Training %>% select(-PriceDirection),
+    y = Master_Training %>%
+      mutate(Price_num = as.integer(PriceDirection)) %>%
+      pull(Price_num),
+    label = "rf"
+  )
+
+tree_explain <- 
+  explain_tidymodels(
+    model = tree_final,
+    data = Master_Training %>% select(-PriceDirection),
+    y = Master_Training %>%
+      mutate(Price_num = as.integer(PriceDirection)) %>%
+      pull(Price_num),
+    label = "tree"
+  )
+
+lasso_model_performance <- model_performance(lasso_explain)
+rf_model_performance <- model_performance(rf_explain)
+tree_performance <- model_performance(tree_explain)
+```
+
+```{r}
+plot(lasso_model_performance, rf_model_performance, tree_performance, geom = "boxplot")
+plot(lasso_model_performance, rf_model_performance, tree_performance, geom = "histogram")
+```
+
+## Variable Importance
+
+```{r}
+set.seed(456)
+
+lasso_var_imp <-
+  model_parts(
+    lasso_explain
+  )
+
+plot(lasso_var_imp)
+```
+
+```{r}
+set.seed(456)
+
+rf_var_imp <-
+  model_parts(
+    rf_explain
+  )
+
+plot(rf_var_imp)
+```
+
+```{r}
+set.seed(456)
+
+tree_var_imp <-
+  model_parts(
+    tree_explain
+  )
+
+plot(tree_var_imp)
+```
+
+## Ceteris-Paribus Profile
+
+```{r}
+rf_cpp <- function(explainer,  obs, var){
+  cprofile <- predict_profile(explainer = explainer, new_observation = obs, variables = var)
+  cprofile %>% 
+    filter(`_vname_` %in% c(var)) %>%
+    ggplot(aes_string(x = var,
+                      y = "`_yhat_`")) + geom_line()
+}
+
+
+obs23 <- Master_Training %>%
+    slice(23)
+
+rf_cpp(rf_explain, obs23, "SOPR")
+```
+
+## Partial Dependence Plots
+
+```{r}
+set.seed(253)
+
+rf_partial <- model_profile(explainer = rf_explain)
+
+plot(rf_partial,
+     variables = "SOPR",
+     geom = "profiles")
+```
+
+# Local Interpretation of ML models
+
+## Local Interpretable Model-agnostic Explanations (LIME)
+
+```{r}
+set.seed(456)
+
+model_type.dalex_explainer <- DALEXtra::model_type.dalex_explainer
+predict_model.dalex_explainer <- DALEXtra::predict_model.dalex_explainer
+
+lime_rf <- predict_surrogate(explainer = rf_explain,
+                             new_observation = obs23 %>% select(-PriceDirection),
+                             n_features = 5,
+                             n_permutations = 1000,
+                             type = "lime")
+
+lime_rf %>% select(model_r2, model_prediction, prediction) %>% distinct()
+
+plot(lime_rf) +
+  labs(x = "Variable")
+```
+
+## Shapley Additive Explanations (SHAP)
+
+```{r}
+rf_shap <- predict_parts(explainer = rf_explain,
+                         new_observation = obs23,
+                         type = "shap",
+                         B = 10)
+
+plot(rf_shap)
+```
+
+# Conclusion and Limitations
+
+
+
+
