@@ -32,6 +32,7 @@ library(DALEX)
 library(DALEXtra)
 library(rpart)
 library(ggthemes)
+library(SLICER)
 theme_set(theme_minimal()) # Lisa's favorite theme
 ```
 
@@ -175,6 +176,7 @@ rf_tune %>% collect_metrics()
 
 
 ```
+
 ```{r, warning=FALSE, include=FALSE}
 best_param_rf <- rf_tune %>%
               select_best(metric = "accuracy")
@@ -183,6 +185,7 @@ best_param_rf
 rf_final <- rf_workflow %>% finalize_workflow(best_param_rf) %>%
               fit(Master_Training)
 ```
+
 ```{r, include=FALSE}
 set.seed(456)
 
@@ -291,6 +294,8 @@ tree_var_imp <-
 
 plot(tree_var_imp)
 ```
+
+<br> We can see that the LASSO model has the most amount of variables of importance, while Random Forest and the Tree Model have 6 variables of importance. This implies that the variables on the bottom of the graph, the ones with greater importance, play a greater role in increasing the performance of the model - when accounting for the other variables in the equation. The length of the bar indicates how much the RMSE increases when that variable is permuted. 
 
 ## Ceteris-Paribus Profile
 
