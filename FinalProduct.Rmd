@@ -327,7 +327,11 @@ plot(rf_partial,
      geom = "profiles")
 ```
 
+<br> A partial depending plot is created by averaging the CP profiles for a sample of observations. It is the blue line seen in the graph above, and we can observe that overall the changes to the value of the longitutde increase the effect on the price direction to an extent, however, after a certain point, have a reduce impact in being able to predict the price price direction. We decided to go ahead with random forest for the partial dependence plots since LASSO would produce inclined parallel lines due to it's additive nature. 
+
 # Local Interpretation of ML models
+
+<br> Local model interpretation helps us understand the impact of variables on individual observatons. Throughout this section, we will focus on the random forest model since it was the one with the highest accuracy. 
 
 ## Local Interpretable Model-agnostic Explanations (LIME)
 
@@ -349,6 +353,9 @@ plot(lime_rf) +
   labs(x = "Variable")
 ```
 
+<br> The table above shows that the predicted value from the original random forest (prediction) model is: 0.9, while the overall model performance is 0.0282, and the prediction from the local model is 0.4796. The bars in the plot above are ordered by weight, and indicate which variables are more important in the local model. 
+
+
 ## Shapley Additive Explanations (SHAP)
 
 ```{r}
@@ -360,8 +367,17 @@ rf_shap <- predict_parts(explainer = rf_explain,
 plot(rf_shap)
 ```
 
-# Conclusion and Limitations
+<br> The idea behind the SHAP is to change the order in which we consider the variables in the break-down plots. The graph above shows the average contribution of each variable's value to the predictive response for this observation. For example, the SOPR of 1.005 contributes to an additional ~0.12 to the predicted prive direction for this observation on average. The boxplots show the variation across permutations of the variables. The larger the variation of the boxplot, and the ones that lie across positive and negative values, the less confident we can be regarding it's effect on the predictor. In this observative, we can be less confident about the effect of SOPR, and Flow to exchanges, SUpply, held by top 100 addresses, adjusted dormancy flow, among a few others. 
+
+# Conclusion
+
+<br> Both methods indicate how changes in the values of the variables for an observation can affect the predicted outcome. While some variables overlap between both approaches, the SHAP method includes more variables overall and is less reliable due to the fact that many variables encompass positive and negative contributions. Due to the volatility of this market and the variables we're looking at, the duration / obervation being examined plays a very crucial role in affecting the results of each variable. For example, bull-market tendencies of investors are different from bear-market tendencies. In other words, if Bitcoin is witnessing a bull-market, the behavior of the investors, which is then reflected on blockchain and our variables, changes; however, in a bear market, the inherent behavior of investors would be different. That might explain why the importance of some of these variables differ based on the specific observation. 
 
 
+# Limitations
+
+<br> One of the limitations of our project is that we cannot determine the strength of Bitcoin’s price movement in each direction. While our accuracy of 58% will allow an individual to make successful investments more than unsuccessful ones, we cannot quantify the strength of the price movement. If we were to replicate this study, we would look into creating PriceDirection as a categorical variable instead of a binary - this way we would be able to identify when the select variables cause a strong bitcoin price movement vis-a-vis a weak price movement. 
+
+<br> Another potential limitation is the rate of maturation of this market. Given that cryptocurrencies and Bitcoin have only existed for over a decade, there are certain variables and trends that affect the price movement over time - due to many structural changes in the market (i.e. greater access to crypto investments, the size of the market cycle, the saturation of the crypto market). For example, the google trend searches of Bitcoin in 2012-2015 played a strong role in determining the price of Bitcoin (Kristoufek, 2013), however that variable did not play as significant of a role in the recent years. Therefore, even though we identified select variables, it would be imperative to replicate this study years from now to reassess their importance as the market matures. 
 
 
